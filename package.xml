@@ -55,6 +55,7 @@
   <depend>realtime_tools</depend>
   <depend>roscpp</depend>
 
+  <test_depend>rosunit</test_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
