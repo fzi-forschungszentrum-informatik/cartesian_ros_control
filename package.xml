@@ -49,14 +49,15 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <depend>controller_interface</depend>
   <depend>geometry_msgs</depend>
   <depend>hardware_interface</depend>
+  <depend>realtime_tools</depend>
   <depend>roscpp</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
-
+    <controller_interface plugin="${prefix}/cartesian_controller_plugins.xml"/>
   </export>
 </package>

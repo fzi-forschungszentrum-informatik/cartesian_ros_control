@@ -2,14 +2,16 @@ cmake_minimum_required(VERSION 3.0.2)
 project(cartesian_ros_control)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  controller_interface
   geometry_msgs
   hardware_interface
+  realtime_tools
   roscpp
   )
 
@@ -95,11 +97,13 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package(
   INCLUDE_DIRS include
-  #LIBRARIES cartesian_ros_control
+  LIBRARIES cartesian_ros_controllers
   CATKIN_DEPENDS
-  geometry_msgs
-  hardware_interface
-  roscpp
+    controller_interface
+    geometry_msgs
+    hardware_interface
+    realtime_tools
+    roscpp
   #  DEPENDS system_lib
   )
 
@@ -112,6 +116,13 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+add_library(cartesian_ros_controllers
+  src/twist_controller.cpp
+)
+add_dependencies(cartesian_ros_controllers ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(cartesian_ros_controllers
+  ${catkin_LIBRARIES}
+)
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/cartesian_ros_control.cpp
@@ -163,6 +174,11 @@ include_directories(
 # )
 
 ## Mark libraries for installation
+install(TARGETS cartesian_ros_controllers
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
 # install(TARGETS ${PROJECT_NAME}
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
