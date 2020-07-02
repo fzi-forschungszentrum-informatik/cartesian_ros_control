@@ -64,7 +64,7 @@ public:
   }
   virtual ~CartesianStateHandle() = default;
 
-  std::string getFrameID() const { return frame_id_; }
+  std::string getName() const { return frame_id_; }
   geometry_msgs::Pose getPose() const
   {
     assert(pose_);

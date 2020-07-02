@@ -191,4 +191,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(cartesian_state_interface_test test/cartesian_state_interface_test.cpp)
   target_link_libraries(cartesian_state_interface_test ${catkin_LIBRARIES})
+
+  catkin_add_gtest(cartesian_command_interface_test test/cartesian_command_interface_test.cpp)
+  target_link_libraries(cartesian_command_interface_test ${catkin_LIBRARIES})
 endif()
