@@ -12,23 +12,23 @@
  */
 //----------------------------------------------------------------------
 
+#pragma once
+
 #include <cartesian_ros_control/cartesian_state_handle.h>
 
-namespace cartesian_ros_control {
-
+namespace cartesian_ros_control
+{
 class PoseCommandHandle : public CartesianStateHandle
 {
 public:
   PoseCommandHandle() = default;
   PoseCommandHandle(const CartesianStateHandle& state_handle, geometry_msgs::Pose* cmd)
-    : CartesianStateHandle(state_handle)
-    , cmd_(cmd)
+    : CartesianStateHandle(state_handle), cmd_(cmd)
   {
     if (!cmd)
     {
-      throw hardware_interface::HardwareInterfaceException(
-        "Cannot create pose command handle for frame '" + state_handle.getName() +
-        "'. Command data pointer is null.");
+      throw hardware_interface::HardwareInterfaceException("Cannot create pose command handle for frame '" +
+                                                           state_handle.getName() + "'. Command data pointer is null.");
     }
   }
   virtual ~PoseCommandHandle() = default;
@@ -51,7 +51,7 @@ public:
   }
 
 private:
-  geometry_msgs::Pose* cmd_ = {nullptr};
+  geometry_msgs::Pose* cmd_ = { nullptr };
 };
 
 class TwistCommandHandle : public CartesianStateHandle
@@ -59,14 +59,12 @@ class TwistCommandHandle : public CartesianStateHandle
 public:
   TwistCommandHandle() = default;
   TwistCommandHandle(const CartesianStateHandle& state_handle, geometry_msgs::Twist* cmd)
-    : CartesianStateHandle(state_handle)
-    , cmd_(cmd)
+    : CartesianStateHandle(state_handle), cmd_(cmd)
   {
     if (!cmd)
     {
-      throw hardware_interface::HardwareInterfaceException(
-        "Cannot create twist command handle for frame '" + state_handle.getName() +
-        "'. Command data pointer is null.");
+      throw hardware_interface::HardwareInterfaceException("Cannot create twist command handle for frame '" +
+                                                           state_handle.getName() + "'. Command data pointer is null.");
     }
   }
   virtual ~TwistCommandHandle() = default;
@@ -89,19 +87,16 @@ public:
   }
 
 private:
-  geometry_msgs::Twist* cmd_ = {nullptr};
+  geometry_msgs::Twist* cmd_ = { nullptr };
 };
 
-
 class PoseCommandInterface
-  : public hardware_interface::HardwareResourceManager<PoseCommandHandle,
-                                                       hardware_interface::ClaimResources>
+  : public hardware_interface::HardwareResourceManager<PoseCommandHandle, hardware_interface::ClaimResources>
 {
 };
 
 class TwistCommandInterface
-  : public hardware_interface::HardwareResourceManager<TwistCommandHandle,
-                                                       hardware_interface::ClaimResources>
+  : public hardware_interface::HardwareResourceManager<TwistCommandHandle, hardware_interface::ClaimResources>
 {
 };
-} // namespace cartesian_ros_control
+}  // namespace cartesian_ros_control

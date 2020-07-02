@@ -22,14 +22,14 @@ using namespace cartesian_ros_control;
 class CartesianCommandInterfaceTest : public ::testing::Test
 {
 protected:
-  std::string reference_frame  = "base";
+  std::string reference_frame = "base";
   std::string controlled_frame = "tool0";
   geometry_msgs::Pose pose_buffer;
   geometry_msgs::Twist twist_buffer;
   geometry_msgs::Accel accel_buffer;
   geometry_msgs::Accel jerk_buffer;
-  CartesianStateHandle state_handle{
-    reference_frame, controlled_frame, &pose_buffer, &twist_buffer, &accel_buffer, &jerk_buffer};
+  CartesianStateHandle state_handle{ reference_frame, controlled_frame, &pose_buffer,
+                                     &twist_buffer,   &accel_buffer,    &jerk_buffer };
   geometry_msgs::Pose pose_cmd_buffer;
   geometry_msgs::Twist twist_cmd_buffer;
   geometry_msgs::Accel accel_cmd_buffer;
@@ -39,8 +39,7 @@ protected:
 TEST_F(CartesianCommandInterfaceTest, TestPoseHandleConstructor)
 {
   EXPECT_NO_THROW(PoseCommandHandle obj(state_handle, &pose_cmd_buffer));
-  EXPECT_THROW(PoseCommandHandle obj(state_handle, nullptr),
-               hardware_interface::HardwareInterfaceException);
+  EXPECT_THROW(PoseCommandHandle obj(state_handle, nullptr), hardware_interface::HardwareInterfaceException);
 }
 
 TEST_F(CartesianCommandInterfaceTest, TestPoseHandleDataHandling)
@@ -76,8 +75,7 @@ TEST_F(CartesianCommandInterfaceTest, TestPoseHandleDataHandling)
 TEST_F(CartesianCommandInterfaceTest, TestTwistHandleConstructor)
 {
   EXPECT_NO_THROW(TwistCommandHandle obj(state_handle, &twist_cmd_buffer));
-  EXPECT_THROW(TwistCommandHandle obj(state_handle, nullptr),
-               hardware_interface::HardwareInterfaceException);
+  EXPECT_THROW(TwistCommandHandle obj(state_handle, nullptr), hardware_interface::HardwareInterfaceException);
 }
 
 TEST_F(CartesianCommandInterfaceTest, TestTwistHandleDataHandling)
