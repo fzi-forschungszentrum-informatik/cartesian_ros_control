@@ -27,7 +27,7 @@ bool TwistController::init(TwistCommandInterface* hw, ros::NodeHandle& n)
   }
 
   handle_ = hw->getHandle(frame_id);
-  twist_sub_ = n.subscribe<geometry_msgs::TwistStamped>("command", 1, &TwistController::twistCallback, this);
+  twist_sub_ = n.subscribe<geometry_msgs::Twist>("command", 1, &TwistController::twistCallback, this);
 
   return true;
 }
@@ -41,6 +41,20 @@ void TwistController::starting(const ros::Time& time)
   twist.angular.x = 0;
   twist.angular.y = 0;
   twist.angular.z = 0;
+  command_buffer_.writeFromNonRT(twist);
+}
+
+
+
+void TwistController::twistCallback(const geometry_msgs::TwistConstPtr& msg)
+{
+  geometry_msgs::Twist twist;
+  twist.linear.x = gain_ * msg->linear.x;
+  twist.linear.y = gain_ * msg->linear.y;
+  twist.linear.z = gain_ * msg->linear.z;
+  twist.angular.x = gain_ * msg->angular.x;
+  twist.angular.y = gain_ * msg->angular.y;
+  twist.angular.z = gain_ * msg->angular.z;
   command_buffer_.writeFromNonRT(twist);
 }
 }  // namespace cartesian_ros_control

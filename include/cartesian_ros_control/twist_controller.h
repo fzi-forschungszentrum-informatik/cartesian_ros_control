@@ -42,7 +42,8 @@ public:
 
 private:
   ros::Subscriber twist_sub_;
-  void twistCallback(const geometry_msgs::TwistStampedConstPtr& msg);
+  void twistCallback(const geometry_msgs::TwistConstPtr& msg);
+  double gain_ = {0.1};
 };
 
 }  // namespace cartesian_ros_control
