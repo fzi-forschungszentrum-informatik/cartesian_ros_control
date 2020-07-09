@@ -29,6 +29,18 @@ bool TwistController::init(TwistCommandInterface* hw, ros::NodeHandle& n)
   handle_ = hw->getHandle(frame_id);
   twist_sub_ = n.subscribe<geometry_msgs::Twist>("command", 1, &TwistController::twistCallback, this);
 
+  std::vector<std::string> joint_names;
+  if (!n.getParam("joints", joint_names))
+  {
+    ROS_ERROR_STREAM("Failed to read required parameter '" << n.resolveName("joints") << ".");
+    return false;
+  }
+
+  for (auto& name : joint_names)
+  {
+    hw->claim(name);
+  }
+
   return true;
 }
 
@@ -43,8 +55,6 @@ void TwistController::starting(const ros::Time& time)
   twist.angular.z = 0;
   command_buffer_.writeFromNonRT(twist);
 }
-
-
 
 void TwistController::twistCallback(const geometry_msgs::TwistConstPtr& msg)
 {
