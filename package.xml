@@ -52,14 +52,17 @@
   <build_depend>roscpp</build_depend>
   <build_depend>trajectory_msgs</build_depend>
   <build_depend>cartesian_control_msgs</build_depend>
+  <build_depend>cartesian_ros_control</build_depend>
 
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>trajectory_msgs</build_export_depend>
   <build_export_depend>cartesian_control_msgs</build_export_depend>
+  <build_export_depend>cartesian_ros_control</build_export_depend>
 
   <exec_depend>roscpp</exec_depend>
   <exec_depend>trajectory_msgs</exec_depend>
   <exec_depend>cartesian_control_msgs</exec_depend>
+  <exec_depend>cartesian_ros_control</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

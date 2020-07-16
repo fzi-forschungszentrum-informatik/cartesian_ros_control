@@ -1,0 +1,19 @@
+<library path="lib/libpass_through_controllers">
+
+  <class name="joint_trajectory_controllers/PassThroughController"
+         type="joint_trajectory_controllers::PassThroughController"
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      This controller forwards joint trajectory goals to the robot for interpolation
+    </description>
+  </class>
+
+  <class name="cartesian_trajectory_controllers/PassThroughController"
+         type="cartesian_trajectory_controllers::PassThroughController"
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      This controller forwards Cartesian trajectory goals to the robot for interpolation
+    </description>
+  </class>
+
+</library>
