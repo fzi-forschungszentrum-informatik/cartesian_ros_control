@@ -65,9 +65,17 @@
   <exec_depend>cartesian_ros_control</exec_depend>
 
 
+  <!-- This is important for the export to work -->
+  <exec_depend>controller_interface</exec_depend>
+
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
 
+    <!-- Put the pass_through_controllers to the other ROS controllers.
+    To check if the export was successful, use
+    rospack plugins - -attrib=plugin controller_interface
+    -->
+    <controller_interface plugin="${prefix}/pass_through_controllers_plugin.xml"/>
   </export>
 </package>

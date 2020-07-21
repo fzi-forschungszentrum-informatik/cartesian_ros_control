@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(pass_through_controllers)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -127,7 +127,7 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  src/pass_through_controller.cpp
+  src/pass_through_controllers.cpp
 )
 
 ## Add cmake target dependencies of the library
