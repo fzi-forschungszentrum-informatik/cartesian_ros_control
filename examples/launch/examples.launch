@@ -1,0 +1,43 @@
+<launch>
+        <!-- Configuration -->
+        <arg name="debug" default="false"/>
+        <arg if="$(arg debug)" name="launch-prefix" value="screen -d -m gdb -command=/home/scherzin/.ros/stefan_test --ex run --args"/>
+        <arg unless="$(arg debug)" name="launch-prefix" value=""/>
+
+        <!-- Load robot_description to parameter server -->
+        <param name="/robot_description"
+        command="$(find xacro)/xacro --inorder '$(find pass_through_controllers)/examples/urdf/robot.urdf.xacro'" />
+
+        <!-- Load hardware configuration -->
+        <rosparam file="$(find pass_through_controllers)/examples/config/example_hw_config.yaml" command="load"></rosparam>
+
+        <!-- Load hardware interface -->
+        <node name="sim_hardware_interface" pkg="ros_control_boilerplate" type="sim_hw_main"
+        output="screen" launch-prefix="$(arg launch-prefix)"/>
+
+        <!-- Robot state publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+                <param name="publish_frequency" type="double" value="50.0" />
+                <param name="tf_prefix" type="string" value="" />
+        </node>
+
+        <!-- Joint state publisher -->
+        <node name="joint_state_controller_spawner" pkg="controller_manager" type="spawner" args="joint_state_controller" respawn="false" output="screen"/>
+
+        <!-- Load controller configuration -->
+        <rosparam file="$(find pass_through_controllers)/examples//config/example_controllers.yaml" command="load"></rosparam>
+
+        <!-- Spawn controllers -->
+        <node name="controller_spawner" pkg="controller_manager" type="spawner"
+                args="--stopped
+                forward_joint_trajectories
+                forward_cartesian_trajectories
+                joint_trajectory_controller
+                "
+        />
+
+        <!-- Visualization -->
+        <arg name="my_rviz" value="-d $(find pass_through_controllers)/examples//etc/examples.rviz" />
+        <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="$(arg my_rviz)" output="screen" >
+        </node>
+</launch>
