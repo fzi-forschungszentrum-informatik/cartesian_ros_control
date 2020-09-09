@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <functional>
 #include <hardware_interface/internal/hardware_resource_manager.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <cartesian_control_msgs/CartesianTrajectory.h>
@@ -49,9 +50,43 @@ class TrajectoryHandle
       }
     };
 
+    TrajectoryHandle(const std::string& name,
+                     TrajectoryType* cmd,
+                     std::function<void(const TrajectoryType&)> on_new_cmd,
+                     std::function<void()> on_cancel
+                     )
+      : m_name(name)
+      , m_cmd(cmd)
+      , m_cmd_callback(on_new_cmd)
+      , m_cancel_callback(on_cancel)
+    {
+      if (!cmd)
+      {
+        throw HardwareInterfaceException(
+          "Cannot create TrajectoryHandle. Command data pointer is null.");
+      }
+    };
+
     ~TrajectoryHandle(){};
 
-    void setCommand(TrajectoryType command) {assert(m_cmd); *m_cmd = command;}
+    void setCommand(TrajectoryType command)
+    {
+      assert(m_cmd);
+      *m_cmd = command;
+
+      if (m_cmd_callback)
+      {
+        m_cmd_callback(*m_cmd);
+      }
+    }
+
+    void cancelCommand()
+    {
+      if (m_cancel_callback)
+      {
+        m_cancel_callback();
+      }
+    }
 
     TrajectoryType getCommand() const {assert(m_cmd); return *m_cmd;}
 
@@ -60,6 +95,8 @@ class TrajectoryHandle
   private:
     std::string m_name;
     TrajectoryType* m_cmd;
+    std::function<void(const TrajectoryType&)> m_cmd_callback;
+    std::function<void()> m_cancel_callback;;
 };
 
 

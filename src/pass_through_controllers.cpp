@@ -11,6 +11,8 @@
 //-----------------------------------------------------------------------------
 
 // Pluginlib
+#include "actionlib/server/simple_action_server.h"
+#include "control_msgs/FollowJointTrajectoryAction.h"
 #include <pass_through_controllers/trajectory_interface.h>
 #include <pluginlib/class_list_macros.h>
 
@@ -79,6 +81,19 @@ namespace joint_trajectory_controllers
       }
     }
 
+    // Action server
+    m_action_server.reset(new actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>(
+          controller_nh,
+          "follow_joint_trajectory",
+          std::bind(&PassThroughController::executeCB, this, std::placeholders::_1),
+          false));
+
+    // This is the cleanest method to notify the vendor robot driver of
+    // preempted requests.
+    m_action_server->registerPreemptCallback(
+        std::bind(&PassThroughController::preemptCB, this));
+
+    m_action_server->start();
 
     return true;
   }
@@ -89,10 +104,46 @@ namespace joint_trajectory_controllers
 
   void PassThroughController::stopping(const ros::Time& time)
   {
+    if (m_action_server->isActive())
+    {
+      // Set canceled flag in the action result
+      m_action_server->setPreempted();
+
+      // Stop trajectory interpolation on the robot
+      m_trajectory_handle->cancelCommand();
+    }
+
   }
 
   void PassThroughController::update(const ros::Time& time, const ros::Duration& period)
   {
+    // TODO: Provide action feedback here
+    // and set goal result to success once finished.
+
+    // TODO: Monitor tolerances of execution
+  }
+
+  void PassThroughController::executeCB(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
+  {
+    // Upon entering this callback, the simple action server has already
+    // preempted the previously active goal (if any) and has accepted the new goal.
+
+    if (!this->isRunning())
+    {
+      ROS_ERROR("Can't accept new action goals. Controller is not running.");
+      control_msgs::FollowJointTrajectoryResult result;
+      result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+      m_action_server->setAborted(result);
+      return;
+    }
+    
+    m_trajectory_handle->setCommand(goal->trajectory);
+  }
+
+  void PassThroughController::preemptCB()
+  {
+    // Notify the vendor robot control.
+    m_trajectory_handle->cancelCommand();
   }
 
 }
