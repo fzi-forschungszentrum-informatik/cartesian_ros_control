@@ -5,8 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Status1
-        - /TF1
         - /TF1/Frames1
         - /RobotModel1/Links1
       Splitter Ratio: 0.511482
@@ -74,6 +72,8 @@ Visualization Manager:
           Value: true
         sensor_link:
           Value: false
+        space_mouse:
+          Value: true
         tool0:
           Value: true
         world:
@@ -95,7 +95,8 @@ Visualization Manager:
                         sensor_link:
                           {}
                         tool0:
-                          {}
+                          space_mouse:
+                            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -147,6 +148,11 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        space_mouse:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         tool0:
           Alpha: 1
           Show Axes: false
@@ -162,43 +168,6 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Alpha: 1
-      Arrow Width: 0.5
-      Class: rviz/WrenchStamped
-      Enabled: true
-      Force Arrow Scale: 2
-      Force Color: 204; 51; 51
-      History Length: 1
-      Name: WrenchStamped
-      Topic: /damping_force
-      Torque Arrow Scale: 2
-      Torque Color: 204; 204; 51
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Axes Length: 0.0700000003
-      Axes Radius: 0.00999999978
-      Class: rviz/Pose
-      Color: 255; 25; 0
-      Enabled: true
-      Head Length: 0.300000012
-      Head Radius: 0.100000001
-      Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.0500000007
-      Shape: Axes
-      Topic: /my_cartesian_motion_controller/target_frame
-      Unreliable: false
-      Value: true
-    - Class: rviz/InteractiveMarkers
-      Enable Transparency: false
-      Enabled: false
-      Name: InteractiveMarkers
-      Show Axes: true
-      Show Descriptions: false
-      Show Visual Aids: false
-      Update Topic: /my_motion_control_handle/update
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 116; 116; 116
@@ -239,10 +208,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.294797003
+      Pitch: 0.249796987
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.870410562
+      Yaw: 0.795410216
     Saved: ~
 Window Geometry:
   Displays:

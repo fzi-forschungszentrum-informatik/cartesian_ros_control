@@ -1,3 +1,5 @@
+# This is a configuration for the ros_control_boilerplate package
+
 generic_hw_control_loop:
   loop_hz: 100
   cycle_time_error_threshold: 0.03

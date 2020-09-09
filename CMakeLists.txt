@@ -11,7 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   trajectory_msgs
   cartesian_control_msgs
+  geometry_msgs
   cartesian_ros_control
+  controller_manager
+  hardware_interface
+  actionlib
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,7 +114,11 @@ catkin_package(
   roscpp
   trajectory_msgs
   cartesian_control_msgs
+  geometry_msgs
   cartesian_ros_control
+  controller_manager
+  hardware_interface
+  actionlib
 #  DEPENDS system_lib
 )
 
@@ -122,6 +130,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  examples/hw_interface
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -138,7 +147,10 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/pass_through_controllers_node.cpp)
+add_executable(hw_interface_example
+  examples/hw_interface/hw_interface.cpp
+  examples/hw_interface/control_node.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -148,10 +160,13 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(hw_interface_example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(hw_interface_example
   ${catkin_LIBRARIES}
 )
 
