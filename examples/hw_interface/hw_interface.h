@@ -79,13 +79,15 @@ private:
   hardware_interface::JointTrajectoryInterface m_jnt_traj_interface;
   hardware_interface::CartesianTrajectoryInterface m_cart_traj_interface;
 
-  // Command buffers
+  // Buffers
   std::vector<double> m_cmd;
   std::vector<double> m_pos;
   std::vector<double> m_vel;
   std::vector<double> m_eff;
   hardware_interface::JointTrajectory m_jnt_traj_cmd;
+  hardware_interface::JointTrajectoryFeedback m_jnt_traj_feedback;
   hardware_interface::CartesianTrajectory m_cart_traj_cmd;
+  hardware_interface::CartesianTrajectoryFeedback m_cart_traj_feedback;
 
   // Configuration
   std::string m_ref_frame_id;

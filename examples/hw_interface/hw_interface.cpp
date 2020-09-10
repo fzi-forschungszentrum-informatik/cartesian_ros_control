@@ -79,6 +79,7 @@ HWInterface::HWInterface()
   hardware_interface::JointTrajectoryHandle joint_trajectory_handle =
     hardware_interface::JointTrajectoryHandle(
       &m_jnt_traj_cmd,
+      &m_jnt_traj_feedback,
       std::bind(&HWInterface::startJointInterpolation, this, std::placeholders::_1),
       std::bind(&HWInterface::cancelJointInterpolation, this));
 
@@ -87,7 +88,9 @@ HWInterface::HWInterface()
 
   // Initialize and register Cartesian trajectory command handles for PassThroughControllers
   hardware_interface::CartesianTrajectoryHandle cartesian_trajectory_handle =
-    hardware_interface::CartesianTrajectoryHandle(&m_cart_traj_cmd);
+    hardware_interface::CartesianTrajectoryHandle(
+        &m_cart_traj_cmd,
+        &m_cart_traj_feedback);
   m_cart_traj_interface.registerHandle(cartesian_trajectory_handle);
   registerInterface(&m_cart_traj_interface);
 

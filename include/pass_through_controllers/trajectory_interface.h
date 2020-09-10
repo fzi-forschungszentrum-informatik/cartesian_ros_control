@@ -66,14 +66,16 @@ class TrajectoryHandle
      * PassThroughControllers
      *
      * @param cmd The command buffer for read/write operations
+     * @param feedback The feedback buffer for read/write operations
      */
-    TrajectoryHandle(TrajectoryType* cmd)
+    TrajectoryHandle(TrajectoryType* cmd, FeedbackType* feedback)
       : m_cmd(cmd)
+      , m_feedback(feedback)
     {
-      if (!cmd)
+      if (!cmd || !feedback)
       {
         throw HardwareInterfaceException(
-          "Cannot create TrajectoryHandle. Command data pointer is null.");
+          "Cannot create TrajectoryHandle. Make sure to provide both command and feedback buffers during construction");
       }
     };
 
@@ -88,21 +90,23 @@ class TrajectoryHandle
      * vendor controller.
      *
      * @param cmd The command buffer for read/write operations
+     * @param feedback The feedback buffer for read/write operations
      * @param on_new_cmd Callback that is called upon receiving new commands
      * @param on_cancel Callback that is called when current commands are canceled
      */
     TrajectoryHandle(TrajectoryType* cmd,
+                     FeedbackType* feedback,
                      std::function<void(const TrajectoryType&)> on_new_cmd,
-                     std::function<void()> on_cancel
-                     )
+                     std::function<void()> on_cancel)
       : m_cmd(cmd)
+      , m_feedback(feedback)
       , m_cmd_callback(on_new_cmd)
       , m_cancel_callback(on_cancel)
     {
-      if (!cmd)
+      if (!cmd || !feedback)
       {
         throw HardwareInterfaceException(
-          "Cannot create TrajectoryHandle. Command data pointer is null.");
+          "Cannot create TrajectoryHandle. Make sure to provide both command and feedback buffers during construction");
       }
     };
 
@@ -170,7 +174,7 @@ class TrajectoryHandle
      *
      * @return The most recent feedback on the trajectory execution
      */
-    FeedbackType getFeedback() const {assert(m_cmd); return *m_feedback;}
+    FeedbackType getFeedback() const {assert(m_feedback); return *m_feedback;}
 
     /**
      * @brief Get the name of this trajectory handle
