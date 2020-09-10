@@ -14,6 +14,8 @@
 #pragma once
 
 // ROS
+#include "ros/publisher.h"
+#include "ros/subscriber.h"
 #include <array>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
@@ -79,14 +81,14 @@ private:
   hardware_interface::CartesianTrajectory m_cart_traj_cmd;
 
   // Configuration
-  std::string ref_frame_id_;
-  std::string frame_id_;
+  std::string m_ref_frame_id;
+  std::string m_frame_id;
 
   // States
-  geometry_msgs::Pose cartesian_pose_;
-  geometry_msgs::Twist cartesian_twist_;
-  geometry_msgs::Accel cartesian_accel_;
-  geometry_msgs::Accel cartesian_jerk_;
+  geometry_msgs::Pose m_cartesian_pose;
+  geometry_msgs::Twist m_cartesian_twist;
+  geometry_msgs::Accel m_cartesian_accel;
+  geometry_msgs::Accel m_cartesian_jerk;
 
 
   // Handles
@@ -94,7 +96,9 @@ private:
   std::vector<hardware_interface::JointStateHandle> m_joint_state_handles;
 
   // Robot connection and communication
-  // TODO:
+  ros::Publisher m_start_pub;
+  ros::Publisher m_cancel_pub;
+  ros::Subscriber m_feedback_sub;
 };
 
 } // namespace examples

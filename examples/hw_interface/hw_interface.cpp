@@ -29,8 +29,8 @@ HWInterface::HWInterface()
 
   // TODO:
   bool error = false;
-  error += nh.getParam("ref_frame_id", ref_frame_id_);
-  error += nh.getParam("frame_id", frame_id_);
+  error += nh.getParam("ref_frame_id", m_ref_frame_id);
+  error += nh.getParam("frame_id", m_frame_id);
 
   const int nr_joints = m_joint_names.size();
   m_cmd.resize(nr_joints);
@@ -50,12 +50,12 @@ HWInterface::HWInterface()
 
   // Initialize and register a Cartesian state handle
   cartesian_ros_control::CartesianStateHandle cartesian_state_handle =
-    cartesian_ros_control::CartesianStateHandle(ref_frame_id_,
-                                                frame_id_,
-                                                &cartesian_pose_,
-                                                &cartesian_twist_,
-                                                &cartesian_accel_,
-                                                &cartesian_jerk_);
+    cartesian_ros_control::CartesianStateHandle(m_ref_frame_id,
+                                                m_frame_id,
+                                                &m_cartesian_pose,
+                                                &m_cartesian_twist,
+                                                &m_cartesian_accel,
+                                                &m_cartesian_jerk);
   m_cart_state_interface.registerHandle(cartesian_state_handle);
   registerInterface(&m_cart_state_interface);
 
