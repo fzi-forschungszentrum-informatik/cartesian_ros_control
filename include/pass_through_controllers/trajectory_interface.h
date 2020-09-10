@@ -21,7 +21,14 @@
 
 namespace hardware_interface {
 
+/**
+ * @brief TrajectoryType for joint-based trajectories
+ */
 using JointTrajectory = trajectory_msgs::JointTrajectory;
+
+/**
+ * @brief TrajectoryType for Cartesian trajectories
+ */
 using CartesianTrajectory = cartesian_control_msgs::CartesianTrajectory;
 
 
@@ -32,7 +39,7 @@ using CartesianTrajectory = cartesian_control_msgs::CartesianTrajectory;
  * This is a special type of interface handles for PassThroughControllers. The
  * handles provide access to trajectory command buffers.
  *
- * @tparam TrajectoryType The type of trajectory used
+ * @tparam TrajectoryType The type of trajectory used.
  */
 template<class TrajectoryType>
 class TrajectoryHandle
@@ -40,6 +47,13 @@ class TrajectoryHandle
   public:
     TrajectoryHandle() = delete;
 
+    /**
+     * @brief A trajectory handle for managing read/write functionality for
+     * PassThroughControllers
+     *
+     * @param name The name to set for the handle
+     * @param cmd The command buffer for read/write operations
+     */
     TrajectoryHandle(const std::string& name, TrajectoryType* cmd)
       : m_name(name), m_cmd(cmd)
     {
@@ -50,6 +64,22 @@ class TrajectoryHandle
       }
     };
 
+    /**
+     * @brief A trajectory handle for managing read/write functionality for
+     * PassThroughControllers
+     *
+     * Overload for using callbacks to trigger precise start and cancel events
+     * in user code. In the context of using PassThroughControllers,
+     * implementers of ROS-control HW-interfaces can use this callback
+     * mechanism to handle starting and canceling of trajectories on the robot
+     * vendor controller.
+     *
+     * @param name The name to set for the handle
+     * @param cmd The command buffer for read/write operations
+     * @param on_new_cmd Callback that is called upon receiving new commands
+     * @param on_cancel Callback that is called when current commands are canceled
+     * @param 
+     */
     TrajectoryHandle(const std::string& name,
                      TrajectoryType* cmd,
                      std::function<void(const TrajectoryType&)> on_new_cmd,
@@ -69,6 +99,14 @@ class TrajectoryHandle
 
     ~TrajectoryHandle(){};
 
+    /**
+     * @brief Write the command buffer with the content of an new trajectory
+     *
+     * This will mainly be used by PassThroughControllers to store their new
+     * incoming trajectories in the robot hardware interface.
+     *
+     * @param command The new trajectory
+     */
     void setCommand(TrajectoryType command)
     {
       assert(m_cmd);
@@ -80,6 +118,19 @@ class TrajectoryHandle
       }
     }
 
+    /**
+     * @brief Read a trajectory from the command buffer
+     *
+     * This can be used to access content from forwarded trajectories in the
+     * robot hardware interface.
+     *
+     * @return The content of the trajectory command buffer
+     */
+    TrajectoryType getCommand() const {assert(m_cmd); return *m_cmd;}
+
+    /**
+     * @brief Cancel an active command
+     */
     void cancelCommand()
     {
       if (m_cancel_callback)
@@ -88,8 +139,11 @@ class TrajectoryHandle
       }
     }
 
-    TrajectoryType getCommand() const {assert(m_cmd); return *m_cmd;}
-
+    /**
+     * @brief Get the name of this trajectory handle
+     *
+     * @return The name that is associated with this specific handle
+     */
     std::string getName() const noexcept { return m_name; }
 
   private:
