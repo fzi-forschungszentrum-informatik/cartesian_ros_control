@@ -117,10 +117,11 @@ namespace joint_trajectory_controllers
 
   void PassThroughController::update(const ros::Time& time, const ros::Duration& period)
   {
-    // TODO: Provide action feedback here
-    // and set goal result to success once finished.
+    m_action_server->publishFeedback(
+        m_trajectory_handle->getFeedback());
 
     // TODO: Monitor tolerances of execution
+    // and set goal result to success once finished.
   }
 
   void PassThroughController::executeCB(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
@@ -137,7 +138,10 @@ namespace joint_trajectory_controllers
       return;
     }
     
-    m_trajectory_handle->setCommand(goal->trajectory);
+    m_trajectory_handle->setCommand(*goal);
+
+    // TODO: Wait for the robot
+    m_action_server->setSucceeded();
   }
 
   void PassThroughController::preemptCB()

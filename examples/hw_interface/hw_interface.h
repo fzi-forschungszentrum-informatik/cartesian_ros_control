@@ -14,13 +14,19 @@
 #pragma once
 
 // ROS
+#include "control_msgs/FollowJointTrajectoryAction.h"
+#include "control_msgs/FollowJointTrajectoryActionFeedback.h"
+#include "control_msgs/FollowJointTrajectoryFeedback.h"
 #include "ros/publisher.h"
 #include "ros/subscriber.h"
 #include <array>
+#include <memory>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Accel.h>
+#include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/terminal_state.h>
 
 // ROS control
 #include <hardware_interface/joint_command_interface.h>
@@ -28,6 +34,7 @@
 #include <hardware_interface/robot_hw.h>
 #include <pass_through_controllers/trajectory_interface.h>
 #include <cartesian_ros_control/cartesian_state_handle.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
 
 // Other
 #include <string>
@@ -96,9 +103,9 @@ private:
   std::vector<hardware_interface::JointStateHandle> m_joint_state_handles;
 
   // Robot connection and communication
-  ros::Publisher m_start_pub;
-  ros::Publisher m_cancel_pub;
-  ros::Subscriber m_feedback_sub;
+  std::unique_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >
+    m_robot_communication;
+  void handleFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback);
 };
 
 } // namespace examples

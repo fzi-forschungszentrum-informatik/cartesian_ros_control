@@ -12,6 +12,12 @@
 
 
 #include "hw_interface.h"
+#include "actionlib/client/simple_action_client.h"
+#include "control_msgs/FollowJointTrajectoryAction.h"
+#include "control_msgs/FollowJointTrajectoryActionGoal.h"
+#include "control_msgs/FollowJointTrajectoryFeedback.h"
+#include "control_msgs/FollowJointTrajectoryGoal.h"
+#include <functional>
 
 
 namespace examples {
@@ -72,7 +78,6 @@ HWInterface::HWInterface()
   // Initialize and register trajectory command handles for PassThroughControllers
   hardware_interface::JointTrajectoryHandle joint_trajectory_handle =
     hardware_interface::JointTrajectoryHandle(
-      "joint_trajectory_handle",
       &m_jnt_traj_cmd,
       std::bind(&HWInterface::startJointInterpolation, this, std::placeholders::_1),
       std::bind(&HWInterface::cancelJointInterpolation, this));
@@ -82,13 +87,18 @@ HWInterface::HWInterface()
 
   // Initialize and register Cartesian trajectory command handles for PassThroughControllers
   hardware_interface::CartesianTrajectoryHandle cartesian_trajectory_handle =
-    hardware_interface::CartesianTrajectoryHandle("cartesian_trajectory_handle", &m_cart_traj_cmd);
+    hardware_interface::CartesianTrajectoryHandle(&m_cart_traj_cmd);
   m_cart_traj_interface.registerHandle(cartesian_trajectory_handle);
   registerInterface(&m_cart_traj_interface);
 
+  // Robot dummy communication
+  m_robot_communication =
+    std::make_unique<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >(
+      "/robot_dummy/vendor_joint_controller/follow_joint_trajectory", true);
 
-  // Yellow greeting to get started
-  ROS_INFO("\033[1;33mExample HW interface is ready \033[0m");
+  m_robot_communication->waitForServer();
+
+  ROS_INFO("Example HW interface is ready");
 }
 
 HWInterface::~HWInterface() {}
@@ -96,23 +106,34 @@ HWInterface::~HWInterface() {}
 
 void HWInterface::read(const ros::Time& time, const ros::Duration& period)
 {
-  // nothing to do for this example HW
+  // Code for conventional ROS-control loop here.
 }
 
 void HWInterface::write(const ros::Time& time, const ros::Duration& period)
 {
-  // nothing to do for this example HW
+  // Code for conventional ROS-control loop here.
 }
 
 void HWInterface::startJointInterpolation(const hardware_interface::JointTrajectory& trajectory)
 {
-  // TODO: Send action goal to vendor joint trajectory controller.
+  control_msgs::FollowJointTrajectoryGoalConstPtr test;
+
+  m_robot_communication->sendGoal(
+    trajectory,
+    0, // no done callback
+    0, // no active callback
+    std::bind(
+      &HWInterface::handleFeedback, this, std::placeholders::_1)); // Process feedback continuously
 }
 
 void HWInterface::cancelJointInterpolation()
 {
-  // TODO: Send preemption request to vendor joint trajectory controller.
+  m_robot_communication->cancelGoal();
 }
 
+void HWInterface::handleFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)
+{
+  m_jnt_traj_interface.getHandle("joint_trajectory_interface").setFeedback(*feedback);
+}
 
 } // namespace examples
