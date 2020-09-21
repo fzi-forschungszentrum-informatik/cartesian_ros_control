@@ -117,11 +117,14 @@ namespace joint_trajectory_controllers
 
   void PassThroughController::update(const ros::Time& time, const ros::Duration& period)
   {
-    m_action_server->publishFeedback(
-        m_trajectory_handle->getFeedback());
+    if (m_action_server->isActive())
+    {
+      m_action_server->publishFeedback(
+          m_trajectory_handle->getFeedback());
 
-    // TODO: Monitor tolerances of execution
-    // and set goal result to success once finished.
+      // TODO: Monitor tolerances of execution
+      // and set goal result to success once finished.
+    }
   }
 
   void PassThroughController::executeCB(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)

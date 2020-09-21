@@ -136,7 +136,7 @@ void HWInterface::cancelJointInterpolation()
 
 void HWInterface::handleFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)
 {
-  m_jnt_traj_interface.getHandle("joint_trajectory_interface").setFeedback(*feedback);
+  m_jnt_traj_interface.getHandle("joint_trajectory_handle").setFeedback(*feedback);
 }
 
 } // namespace examples
