@@ -40,8 +40,6 @@ public:
   void update(const ros::Time& time, const ros::Duration& period);
 
 
-  std::unique_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>> m_action_server;
-
   /**
    * @brief Callback method for new action goals
    *
@@ -80,6 +78,16 @@ public:
   void preemptCB();
 
 private:
+  /**
+   * @brief  Monitor the trajectory execution
+   *
+   * @param feedback The feedback to use for evaluating tolerances
+   */
+  void monitorExecution(const hardware_interface::JointTrajectoryFeedback& feedback);
+
+
+  bool m_done;
+  std::unique_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>> m_action_server;
   std::unique_ptr<hardware_interface::JointTrajectoryHandle> m_trajectory_handle;
   std::vector<hardware_interface::JointStateHandle> m_joint_handles;
 };

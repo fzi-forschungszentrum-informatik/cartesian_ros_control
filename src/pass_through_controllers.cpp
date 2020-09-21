@@ -13,6 +13,8 @@
 // Pluginlib
 #include "actionlib/server/simple_action_server.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
+#include "control_msgs/FollowJointTrajectoryResult.h"
+#include "ros/duration.h"
 #include <pass_through_controllers/trajectory_interface.h>
 #include <pluginlib/class_list_macros.h>
 
@@ -119,11 +121,13 @@ namespace joint_trajectory_controllers
   {
     if (m_action_server->isActive())
     {
-      m_action_server->publishFeedback(
-          m_trajectory_handle->getFeedback());
+      hardware_interface::JointTrajectoryFeedback f = m_trajectory_handle->getFeedback();
+      m_action_server->publishFeedback(f);
 
-      // TODO: Monitor tolerances of execution
-      // and set goal result to success once finished.
+      // Check tolerances on each call and set terminal conditions for the
+      // action server if special criteria are met.
+      // Also set the m_done flag once that happens.
+      monitorExecution(f);
     }
   }
 
@@ -141,18 +145,61 @@ namespace joint_trajectory_controllers
       return;
     }
     
+    // Notify the  vendor robot control.
     m_trajectory_handle->setCommand(*goal);
+    m_done = false;
 
-    // TODO: Wait for the robot
-    m_action_server->setSucceeded();
+    while (!m_done)
+    {
+      ros::Duration d(0.01);
+      d.sleep();
+    }
+
+    // When done, the action server is in one of the three states:
+    // 1) succeeded: managed in update()
+    // 2) aborted: managed in update()
+    // 3) preempted: managed in preemptCB()
   }
 
   void PassThroughController::preemptCB()
   {
     // Notify the vendor robot control.
     m_trajectory_handle->cancelCommand();
+
+    control_msgs::FollowJointTrajectoryResult result;
+    result.error_string = "preempted";
+    m_action_server->setPreempted(result);
+
+    m_done = true;
   }
 
+  void PassThroughController::monitorExecution(
+    const hardware_interface::JointTrajectoryFeedback& feedback)
+  {
+    // TODO: Check path_tolerance
+    {
+      //control_msgs::FollowJointTrajectoryResult result;
+      //result.error_code = control_msgs::FollowJointTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      // m_action_server->setAborted(result);
+      // m_done = true;
+      // return;
+    }
+
+    // TODO: Check goal_tolerance and goal_time_tolerance
+    {
+      //m_action_server->setSucceeded();
+      // m_done = true;
+      // return;
+    }
+    {
+      // control_msgs::FollowJointTrajectoryResult result;
+      // result.error_code = control_msgs::FollowJointTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
+      //m_action_server->setAborted(result);
+      // m_done = true;
+      // return;
+    }
+
+  }
 }
 
 PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController,
