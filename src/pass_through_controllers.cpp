@@ -20,16 +20,14 @@
 
 // Project
 #include <pass_through_controllers/pass_through_controllers.h>
-#include <hardware_interface/joint_state_interface.h>
-#include <cartesian_ros_control/cartesian_state_handle.h>
 
 namespace joint_trajectory_controllers
 {
-  bool PassThroughController::init(hardware_interface::RobotHW* robot_hw,
+  bool PassThroughController::init(hardware_interface::JointTrajectoryInterface* traj_interface,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh)
   {
-    // Get names of readable joints from the parameter server
+    // Get names of joints from the parameter server
     std::vector<std::string> joint_names;
     if (!controller_nh.getParam("joints", joint_names))
     {
@@ -38,14 +36,6 @@ namespace joint_trajectory_controllers
       return false;
     }
 
-    // Get handle for trajectory forwarding from the hardware interface
-    auto* traj_interface = robot_hw->get<hardware_interface::JointTrajectoryInterface>();
-    if (traj_interface == nullptr)
-    {
-      ROS_ERROR("joint_trajectory_controllers/PassThroughController: Error getting "
-          "trajectory interface from hardware");
-      return false;
-    }
     try
     {
       traj_interface->setResources(joint_names);
@@ -58,29 +48,6 @@ namespace joint_trajectory_controllers
           "joint_trajectory_controllersPassThroughController: Exception getting trajectory handle from interface: "
           << ex.what());
       return false;
-    }
-
-    // Get the joint state handles for computing action feedback
-    auto* joint_state_interface = robot_hw->get<hardware_interface::JointStateInterface>();
-    if (joint_state_interface == nullptr)
-    {
-      ROS_ERROR_STREAM("joint_trajectory_controllersPassThroughController: Error getting joint "
-                       "state interface from hardware");
-      return false;
-    }
-    for (size_t i = 0; i < joint_names.size(); ++i)
-    {
-      try
-      {
-        m_joint_handles.push_back(joint_state_interface->getHandle(joint_names[i]));
-      }
-      catch (const hardware_interface::HardwareInterfaceException& ex)
-      {
-        ROS_ERROR_STREAM("joint_trajectory_controllersPassThroughController: Exception getting "
-                         "joint state handles: "
-                         << ex.what());
-        return false;
-      }
     }
 
     // Action server
@@ -210,7 +177,7 @@ PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController,
 
 namespace cartesian_trajectory_controllers
 {
-  bool PassThroughController::init(hardware_interface::RobotHW* robot_hw,
+  bool PassThroughController::init(hardware_interface::CartesianTrajectoryInterface* robot_hw,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh)
   {

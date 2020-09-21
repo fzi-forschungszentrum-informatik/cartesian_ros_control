@@ -13,7 +13,7 @@
 #pragma once
 
 #include "control_msgs/FollowJointTrajectoryGoal.h"
-#include <controller_interface/multi_interface_controller.h>
+#include <controller_interface/controller.h>
 #include <memory>
 #include <pass_through_controllers/trajectory_interface.h>
 #include <hardware_interface/joint_state_interface.h>
@@ -24,12 +24,10 @@
 namespace joint_trajectory_controllers {
 
 class PassThroughController
-  : public controller_interface::MultiInterfaceController<
-      hardware_interface::JointTrajectoryInterface,
-      hardware_interface::JointStateInterface>
+  : public controller_interface::Controller<hardware_interface::JointTrajectoryInterface>
 {
 public:
-  bool init(hardware_interface::RobotHW* robot_hw,
+  bool init(hardware_interface::JointTrajectoryInterface* traj_interface,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh);
 
@@ -89,7 +87,6 @@ private:
   bool m_done;
   std::unique_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>> m_action_server;
   std::unique_ptr<hardware_interface::JointTrajectoryHandle> m_trajectory_handle;
-  std::vector<hardware_interface::JointStateHandle> m_joint_handles;
 };
 } // namespace joint_trajectory_controllers
 
@@ -101,12 +98,10 @@ private:
 namespace cartesian_trajectory_controllers {
 
 class PassThroughController
-  : public controller_interface::MultiInterfaceController<
-      hardware_interface::CartesianTrajectoryInterface,
-      cartesian_ros_control::CartesianStateInterface>
+  : public controller_interface::Controller<hardware_interface::CartesianTrajectoryInterface>
 {
 public:
-  bool init(hardware_interface::RobotHW* robot_hw,
+  bool init(hardware_interface::CartesianTrajectoryInterface* robot_hw,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh);
 
