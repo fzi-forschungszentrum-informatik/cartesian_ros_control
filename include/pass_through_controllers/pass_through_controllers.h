@@ -13,6 +13,7 @@
 #pragma once
 
 #include "control_msgs/FollowJointTrajectoryGoal.h"
+#include "control_msgs/JointTolerance.h"
 #include <controller_interface/controller.h>
 #include <memory>
 #include <pass_through_controllers/trajectory_interface.h>
@@ -20,6 +21,7 @@
 #include <cartesian_ros_control/cartesian_state_handle.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <vector>
 
 namespace joint_trajectory_controllers {
 
@@ -83,8 +85,27 @@ private:
    */
   void monitorExecution(const hardware_interface::JointTrajectoryFeedback& feedback);
 
+  /**
+   * @brief Check if tolerances are met
+   *
+   * @param error The error to check
+   * @param tolerances The tolerances to check against
+   *
+   * @return False if any of the errors exceeds its tolerance, else true
+   */
+  bool withinTolerances(const trajectory_msgs::JointTrajectoryPoint& error,
+                        const std::vector<control_msgs::JointTolerance>& tolerances);
+
+
+  /**
+   * @brief Gets called when the action goal's time is up.
+   */
+  void timesUpCB(const ros::TimerEvent& event);
 
   bool m_done;
+  std::vector<std::string> m_joint_names;
+  std::vector<control_msgs::JointTolerance> m_path_tolerances;
+  std::vector<control_msgs::JointTolerance> m_goal_tolerances;
   std::unique_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>> m_action_server;
   std::unique_ptr<hardware_interface::JointTrajectoryHandle> m_trajectory_handle;
 };
