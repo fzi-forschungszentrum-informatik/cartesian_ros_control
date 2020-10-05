@@ -21,7 +21,7 @@ class Client(object):
 
     def __init__(self):
         self.client = actionlib.SimpleActionClient(
-            '/hw_interface/forward_joint_trajectories/follow_joint_trajectory',
+            '/hw_interface/forward_joint_trajectories/follow_trajectory',
             FollowJointTrajectoryAction)
         self.client.wait_for_server()
 

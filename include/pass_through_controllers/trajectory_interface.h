@@ -179,9 +179,12 @@ class TrajectoryHandle
     /**
      * @brief Get the name of this trajectory handle
      *
+     * By convention, this either returns \a joint_trajectory_handle for joint-based trajectory handles
+     * and \a cartesian_trajectory_handle for Cartesian-based trajectory handles.
+     *
      * @return The name that is associated with this specific handle
      */
-    std::string getName() const noexcept { return "joint_trajectory_handle"; }
+    static std::string getName() noexcept;
 
   private:
     TrajectoryType* m_cmd;
@@ -190,6 +193,19 @@ class TrajectoryHandle
     std::function<void()> m_cancel_callback;;
 };
 
+
+// Full spezializations for name deduction
+template<> inline
+std::string TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::getName() noexcept
+{
+  return "joint_trajectory_handle";
+};
+
+template<> inline
+std::string TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>::getName() noexcept
+{
+  return "cartesian_trajectory_handle";
+};
 
 using JointTrajectoryHandle = TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>;
 using CartesianTrajectoryHandle = TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>;

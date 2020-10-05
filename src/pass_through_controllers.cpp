@@ -11,23 +11,21 @@
 //-----------------------------------------------------------------------------
 
 // Pluginlib
-#include "actionlib/server/simple_action_server.h"
-#include "control_msgs/FollowJointTrajectoryAction.h"
-#include "control_msgs/FollowJointTrajectoryResult.h"
-#include "control_msgs/JointTolerance.h"
-#include "ros/duration.h"
-#include "ros/timer.h"
-#include "trajectory_msgs/JointTrajectoryPoint.h"
-#include <pass_through_controllers/trajectory_interface.h>
 #include <pluginlib/class_list_macros.h>
 
 // Project
+#include <pass_through_controllers/trajectory_interface.h>
 #include <pass_through_controllers/pass_through_controllers.h>
 #include <string>
 
-namespace joint_trajectory_controllers
-{
-  bool PassThroughController::init(hardware_interface::JointTrajectoryInterface* traj_interface,
+// Other
+#include "ros/duration.h"
+#include "ros/timer.h"
+
+namespace trajectory_controllers {
+
+  template <class TrajectoryInterface>
+  bool PassThroughController<TrajectoryInterface>::init(TrajectoryInterface* traj_interface,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh)
   {
@@ -42,21 +40,21 @@ namespace joint_trajectory_controllers
     try
     {
       traj_interface->setResources(m_joint_names);
-      m_trajectory_handle = std::make_unique<hardware_interface::JointTrajectoryHandle>(
-          traj_interface->getHandle("joint_trajectory_handle"));
+      m_trajectory_handle = std::make_unique<typename Base::TrajectoryHandle>(
+          traj_interface->getHandle(Base::TrajectoryHandle::getName()));
     }
     catch (hardware_interface::HardwareInterfaceException& ex)
     {
       ROS_ERROR_STREAM(
-          "joint_trajectory_controllersPassThroughController: Exception getting trajectory handle from interface: "
+          controller_nh.getNamespace() << ": Exception getting trajectory handle from interface: "
           << ex.what());
       return false;
     }
 
     // Action server
-    m_action_server.reset(new actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>(
+    m_action_server.reset(new actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction>(
           controller_nh,
-          "follow_joint_trajectory",
+          "follow_trajectory", // TODO: joint vs Cartesian
           std::bind(&PassThroughController::executeCB, this, std::placeholders::_1),
           false));
 
@@ -70,11 +68,13 @@ namespace joint_trajectory_controllers
     return true;
   }
 
-  void PassThroughController::starting(const ros::Time& time)
+  template <class TrajectoryInterface>
+  void PassThroughController<TrajectoryInterface>::starting(const ros::Time& time)
   {
   }
 
-  void PassThroughController::stopping(const ros::Time& time)
+  template <class TrajectoryInterface>
+  void PassThroughController<TrajectoryInterface>::stopping(const ros::Time& time)
   {
     if (m_action_server->isActive())
     {
@@ -87,11 +87,12 @@ namespace joint_trajectory_controllers
 
   }
 
-  void PassThroughController::update(const ros::Time& time, const ros::Duration& period)
+  template <class TrajectoryInterface>
+  void PassThroughController<TrajectoryInterface>::update(const ros::Time& time, const ros::Duration& period)
   {
     if (m_action_server->isActive())
     {
-      hardware_interface::JointTrajectoryFeedback f = m_trajectory_handle->getFeedback();
+      typename Base::TrajectoryFeedback f = m_trajectory_handle->getFeedback();
       m_action_server->publishFeedback(f);
 
       // Check tolerances on each call and set terminal conditions for the
@@ -101,7 +102,8 @@ namespace joint_trajectory_controllers
     }
   }
 
-  void PassThroughController::executeCB(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal)
+  template <class TrajectoryInterface>
+  void PassThroughController<TrajectoryInterface>::executeCB(const typename Base::GoalConstPtr& goal)
   {
     // Upon entering this callback, the simple action server has already
     // preempted the previously active goal (if any) and has accepted the new goal.
@@ -109,20 +111,15 @@ namespace joint_trajectory_controllers
     if (!this->isRunning())
     {
       ROS_ERROR("Can't accept new action goals. Controller is not running.");
-      control_msgs::FollowJointTrajectoryResult result;
-      result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+      typename Base::FollowTrajectoryResult result;
+      result.error_code = Base::FollowTrajectoryResult::INVALID_GOAL;
       m_action_server->setAborted(result);
       return;
     }
 
     // Only allow correct tolerances if given
-    if ((!goal->path_tolerance.empty() && goal->path_tolerance.size() != m_joint_names.size()) ||
-        (!goal->goal_tolerance.empty() && goal->goal_tolerance.size() != m_joint_names.size()))
+    if (!goalValid(goal))
     {
-      ROS_ERROR("Given tolerances must match the number of joints");
-      control_msgs::FollowJointTrajectoryResult result;
-      result.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
-      m_action_server->setAborted(result);
       return;
     }
     m_path_tolerances = goal->path_tolerance;
@@ -149,35 +146,39 @@ namespace joint_trajectory_controllers
     // 3) preempted: managed in preemptCB()
   }
 
-  void PassThroughController::preemptCB()
+
+  template <class TrajectoryInterface>
+  void PassThroughController<TrajectoryInterface>::preemptCB()
   {
     // Notify the vendor robot control.
     m_trajectory_handle->cancelCommand();
 
-    control_msgs::FollowJointTrajectoryResult result;
+    typename Base::FollowTrajectoryResult result;
     result.error_string = "preempted";
     m_action_server->setPreempted(result);
 
     m_done = true;
   }
 
-  void PassThroughController::monitorExecution(
-    const hardware_interface::JointTrajectoryFeedback& feedback)
+  template <class TrajectoryInterface>
+  void PassThroughController<TrajectoryInterface>::monitorExecution(
+    const typename Base::TrajectoryFeedback& feedback)
   {
     // Abort if any of the joints exceeds its path tolerance
     if (!withinTolerances(feedback.error, m_path_tolerances))
     {
-      control_msgs::FollowJointTrajectoryResult result;
-      result.error_code = control_msgs::FollowJointTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      typename Base::FollowTrajectoryResult result;
+      result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
       m_action_server->setAborted(result);
       m_done = true;
       return;
     }
   }
 
-  bool PassThroughController::withinTolerances(
-    const trajectory_msgs::JointTrajectoryPoint& error,
-    const std::vector<control_msgs::JointTolerance>& tolerances)
+  template <>
+  bool PassThroughController<hardware_interface::JointTrajectoryInterface>::withinTolerances(
+    const TrajectoryPoint& error,
+    const Tolerance& tolerances)
   {
     // Precondition
     if (!tolerances.empty())
@@ -203,16 +204,69 @@ namespace joint_trajectory_controllers
     return true;
   }
 
-  void PassThroughController::timesUpCB(const ros::TimerEvent& event)
+  template <>
+  bool PassThroughController<hardware_interface::CartesianTrajectoryInterface>::withinTolerances(
+    const typename Base::TrajectoryPoint& error, const typename Base::Tolerance& tolerances)
+  {
+    // Precondition
+    //if (!tolerances.empty())
+    //{
+    //  assert(error.positions.size() == tolerances.size() &&
+    //      error.velocities.size() == tolerances.size() &&
+    //      error.accelerations.size() == tolerances.size());
+    //}
+
+    //for (size_t i = 0; i < tolerances.size(); ++i)
+    //{
+    //  // > 0.0 means initialized
+    //  if ((m_path_tolerances[i].position > 0.0 &&
+    //       std::abs(error.positions[i]) > m_path_tolerances[i].position) ||
+    //      (m_path_tolerances[i].velocity > 0.0 &&
+    //       std::abs(error.velocities[i]) > m_path_tolerances[i].velocity) ||
+    //      (m_path_tolerances[i].acceleration > 0.0 &&
+    //       std::abs(error.accelerations[i]) > m_path_tolerances[i].acceleration))
+    //  {
+    //    return false;
+    //  }
+    //}
+    return true;
+  }
+
+  template <>
+  bool PassThroughController<hardware_interface::JointTrajectoryInterface>::goalValid(
+    const typename Base::GoalConstPtr& goal)
+  {
+    if ((!goal->path_tolerance.empty() && goal->path_tolerance.size() != m_joint_names.size()) ||
+        (!goal->goal_tolerance.empty() && goal->goal_tolerance.size() != m_joint_names.size()))
+    {
+      ROS_ERROR("Given tolerances must match the number of joints");
+      typename Base::FollowTrajectoryResult result;
+      result.error_code = Base::FollowTrajectoryResult::INVALID_GOAL;
+      m_action_server->setAborted(result);
+      return false;
+    }
+    return true;
+  }
+
+  template <>
+  bool PassThroughController<hardware_interface::CartesianTrajectoryInterface>::goalValid(
+    const typename Base::GoalConstPtr& goal)
+  {
+    // TODO: Implement
+    return true;
+  }
+
+  template <class TrajectoryInterface>
+  void PassThroughController<TrajectoryInterface>::timesUpCB(const ros::TimerEvent& event)
   {
     // Use most recent feedback
-    trajectory_msgs::JointTrajectoryPoint p = m_trajectory_handle->getFeedback().error;
-    control_msgs::FollowJointTrajectoryResult result;
+    typename Base::TrajectoryPoint p = m_trajectory_handle->getFeedback().error;
+    typename Base::FollowTrajectoryResult result;
 
     // Abort if any of the joints exceeds its goal tolerance
     if (!withinTolerances(p, m_goal_tolerances))
     {
-      result.error_code = control_msgs::FollowJointTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
+      result.error_code = Base::FollowTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
       m_action_server->setAborted(result);
 
       // TODO: Preempt vendor control?
@@ -222,7 +276,7 @@ namespace joint_trajectory_controllers
     }
     else // Succeed
     {
-      result.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
+      result.error_code = Base::FollowTrajectoryResult::SUCCESSFUL;
       m_action_server->setSucceeded(result);
     }
 
@@ -232,35 +286,23 @@ namespace joint_trajectory_controllers
 
 }
 
-PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController,
-                       controller_interface::ControllerBase)
 
+// Exports
 
+namespace joint_trajectory_controllers {
 
-
-namespace cartesian_trajectory_controllers
-{
-  bool PassThroughController::init(hardware_interface::CartesianTrajectoryInterface* robot_hw,
-            ros::NodeHandle& root_nh,
-            ros::NodeHandle& controller_nh)
-  {
-    return true;
-  }
-
-  void PassThroughController::starting(const ros::Time& time)
-  {
-  }
-
-  void PassThroughController::stopping(const ros::Time& time)
-  {
-  }
-
-  void PassThroughController::update(const ros::Time& time, const ros::Duration& period)
-  {
-  }
-
+using PassThroughController =
+  trajectory_controllers::PassThroughController<hardware_interface::JointTrajectoryInterface>;
 }
 
+namespace cartesian_trajectory_controllers {
+
+using PassThroughController =
+  trajectory_controllers::PassThroughController<hardware_interface::CartesianTrajectoryInterface>;
+}
+
+PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController,
+                       controller_interface::ControllerBase)
 
 PLUGINLIB_EXPORT_CLASS(cartesian_trajectory_controllers::PassThroughController,
                        controller_interface::ControllerBase)

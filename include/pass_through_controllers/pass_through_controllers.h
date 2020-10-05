@@ -12,24 +12,81 @@
 
 #pragma once
 
-#include "control_msgs/FollowJointTrajectoryGoal.h"
-#include "control_msgs/JointTolerance.h"
+// ROS control
 #include <controller_interface/controller.h>
 #include <memory>
 #include <pass_through_controllers/trajectory_interface.h>
-#include <hardware_interface/joint_state_interface.h>
-#include <cartesian_ros_control/cartesian_state_handle.h>
-#include <actionlib/server/simple_action_server.h>
+
+// Joint-based
+#include <control_msgs/FollowJointTrajectoryGoal.h>
+#include <control_msgs/JointTolerance.h>
+#include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+
+// Cartesian
+#include <cartesian_control_msgs/CartesianTolerance.h>
+#include <cartesian_control_msgs/CartesianTrajectoryPoint.h>
+#include <cartesian_control_msgs/FollowCartesianTrajectoryGoal.h>
+#include <cartesian_control_msgs/FollowCartesianTrajectoryAction.h>
+
+// Other
+#include <actionlib/server/simple_action_server.h>
 #include <vector>
 
-namespace joint_trajectory_controllers {
 
+
+namespace trajectory_controllers {
+
+
+struct JointBase
+{
+  using Tolerance              = std::vector<control_msgs::JointTolerance>;
+  using TrajectoryPoint        = trajectory_msgs::JointTrajectoryPoint;
+  using TrajectoryFeedback     = hardware_interface::JointTrajectoryFeedback; 
+  using TrajectoryHandle       = hardware_interface::JointTrajectoryHandle;
+  using FollowTrajectoryAction = control_msgs::FollowJointTrajectoryAction;
+  using FollowTrajectoryResult = control_msgs::FollowJointTrajectoryResult;
+  using GoalConstPtr           = control_msgs::FollowJointTrajectoryGoalConstPtr;
+};
+
+struct CartesianBase
+{
+  using Tolerance              = cartesian_control_msgs::CartesianTolerance;
+  using TrajectoryPoint        = cartesian_control_msgs::CartesianTrajectoryPoint;
+  using TrajectoryFeedback     = hardware_interface::CartesianTrajectoryFeedback;
+  using TrajectoryHandle       = hardware_interface::CartesianTrajectoryHandle;
+  using FollowTrajectoryAction = cartesian_control_msgs::FollowCartesianTrajectoryAction;
+  using FollowTrajectoryResult = cartesian_control_msgs::FollowCartesianTrajectoryResult;
+  using GoalConstPtr           = cartesian_control_msgs::FollowCartesianTrajectoryGoalConstPtr;
+};
+
+
+/**
+ * @brief TODO
+ *
+ * @tparam TrajectoryInterface The type of trajectory interface used for this
+ * controller. Either hardware_interface::JointTrajectoryInterface or
+ * hardware_interface::CartesianTrajectoryInterface.
+ */
+template <class TrajectoryInterface>
 class PassThroughController
-  : public controller_interface::Controller<hardware_interface::JointTrajectoryInterface>
+  : public controller_interface::Controller<TrajectoryInterface>
+  , public std::conditional<
+      std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
+      JointBase,
+      CartesianBase>::type
 {
 public:
-  bool init(hardware_interface::JointTrajectoryInterface* traj_interface,
+
+  // Alias for full qualifications of inherited types.
+  // This enables a compact definition of member functions for both joint-based
+  // and Cartesian-based PassThroughControllers.
+  using Base = typename std::conditional<
+      std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
+      JointBase,
+      CartesianBase>::type;
+
+  bool init(TrajectoryInterface* traj_interface,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh);
 
@@ -38,7 +95,6 @@ public:
   void stopping(const ros::Time& time);
 
   void update(const ros::Time& time, const ros::Duration& period);
-
 
   /**
    * @brief Callback method for new action goals
@@ -58,7 +114,7 @@ public:
    *
    * @param goal The trajectory goal
    */
-  void executeCB(const control_msgs::FollowJointTrajectoryGoalConstPtr& goal);
+  void executeCB(const typename Base::GoalConstPtr& goal);
 
   /**
    * @brief Callback method for preempt requests
@@ -83,7 +139,7 @@ private:
    *
    * @param feedback The feedback to use for evaluating tolerances
    */
-  void monitorExecution(const hardware_interface::JointTrajectoryFeedback& feedback);
+  void monitorExecution(const typename Base::TrajectoryFeedback& feedback);
 
   /**
    * @brief Check if tolerances are met
@@ -93,9 +149,10 @@ private:
    *
    * @return False if any of the errors exceeds its tolerance, else true
    */
-  bool withinTolerances(const trajectory_msgs::JointTrajectoryPoint& error,
-                        const std::vector<control_msgs::JointTolerance>& tolerances);
+  bool withinTolerances(const typename Base::TrajectoryPoint& error,
+                        const typename Base::Tolerance& tolerances);
 
+  bool goalValid(const typename Base::GoalConstPtr& goal);
 
   /**
    * @brief Gets called when the action goal's time is up.
@@ -104,35 +161,11 @@ private:
 
   bool m_done;
   std::vector<std::string> m_joint_names;
-  std::vector<control_msgs::JointTolerance> m_path_tolerances;
-  std::vector<control_msgs::JointTolerance> m_goal_tolerances;
-  std::unique_ptr<actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>> m_action_server;
-  std::unique_ptr<hardware_interface::JointTrajectoryHandle> m_trajectory_handle;
-};
-} // namespace joint_trajectory_controllers
-
-
-
-
-
-
-namespace cartesian_trajectory_controllers {
-
-class PassThroughController
-  : public controller_interface::Controller<hardware_interface::CartesianTrajectoryInterface>
-{
-public:
-  bool init(hardware_interface::CartesianTrajectoryInterface* robot_hw,
-            ros::NodeHandle& root_nh,
-            ros::NodeHandle& controller_nh);
-
-  void starting(const ros::Time& time);
-
-  void stopping(const ros::Time& time);
-
-  void update(const ros::Time& time, const ros::Duration& period);
-
-private:
+  typename Base::Tolerance m_path_tolerances;
+  typename Base::Tolerance m_goal_tolerances;
+  std::unique_ptr<typename Base::TrajectoryHandle> m_trajectory_handle;
+  std::unique_ptr<actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction> >
+    m_action_server;
 };
 
-} // namespace cartesian_trajectory_controllers
+} // namespace trajectory_controllers
