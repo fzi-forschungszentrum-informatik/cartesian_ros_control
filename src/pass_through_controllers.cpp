@@ -118,7 +118,7 @@ namespace trajectory_controllers {
     }
 
     // Only allow correct tolerances if given
-    if (!goalValid(goal))
+    if (!isValid(goal))
     {
       return;
     }
@@ -233,9 +233,10 @@ namespace trajectory_controllers {
   }
 
   template <>
-  bool PassThroughController<hardware_interface::JointTrajectoryInterface>::goalValid(
+  bool PassThroughController<hardware_interface::JointTrajectoryInterface>::isValid(
     const typename Base::GoalConstPtr& goal)
   {
+    // If tolerances are given, they must be given for all joints.
     if ((!goal->path_tolerance.empty() && goal->path_tolerance.size() != m_joint_names.size()) ||
         (!goal->goal_tolerance.empty() && goal->goal_tolerance.size() != m_joint_names.size()))
     {
@@ -249,10 +250,10 @@ namespace trajectory_controllers {
   }
 
   template <>
-  bool PassThroughController<hardware_interface::CartesianTrajectoryInterface>::goalValid(
+  bool PassThroughController<hardware_interface::CartesianTrajectoryInterface>::isValid(
     const typename Base::GoalConstPtr& goal)
   {
-    // TODO: Implement
+    // No plausibility check required. All possible user inputs seem fine for now.
     return true;
   }
 

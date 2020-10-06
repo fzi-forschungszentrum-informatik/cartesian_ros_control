@@ -152,7 +152,14 @@ private:
   bool withinTolerances(const typename Base::TrajectoryPoint& error,
                         const typename Base::Tolerance& tolerances);
 
-  bool goalValid(const typename Base::GoalConstPtr& goal);
+  /**
+   * @brief Check if follow trajectory goals are valid
+   *
+   * @param goal The goal to check.
+   *
+   * @return True if goal is valid, false otherwise
+   */
+  bool isValid(const typename Base::GoalConstPtr& goal);
 
   /**
    * @brief Gets called when the action goal's time is up.
