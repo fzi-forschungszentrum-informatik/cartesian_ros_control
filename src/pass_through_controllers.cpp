@@ -54,10 +54,12 @@ namespace trajectory_controllers {
 
     // Action server
     m_action_server.reset(new actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction>(
-          controller_nh,
-          "follow_trajectory", // TODO: joint vs Cartesian
-          std::bind(&PassThroughController::executeCB, this, std::placeholders::_1),
-          false));
+      controller_nh,
+      std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value
+        ? "follow_joint_trajectory"
+        : "follow_cartesian_trajectory",
+      std::bind(&PassThroughController::executeCB, this, std::placeholders::_1),
+      false));
 
     // This is the cleanest method to notify the vendor robot driver of
     // preempted requests.
