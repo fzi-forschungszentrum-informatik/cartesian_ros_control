@@ -16,11 +16,12 @@
 // Project
 #include <pass_through_controllers/trajectory_interface.h>
 #include <pass_through_controllers/pass_through_controllers.h>
-#include <string>
 
 // Other
 #include "ros/duration.h"
 #include "ros/timer.h"
+#include <sstream>
+#include <string>
 
 namespace trajectory_controllers {
 
@@ -208,27 +209,34 @@ namespace trajectory_controllers {
   bool PassThroughController<hardware_interface::CartesianTrajectoryInterface>::withinTolerances(
     const typename Base::TrajectoryPoint& error, const typename Base::Tolerance& tolerances)
   {
-    // Precondition
-    //if (!tolerances.empty())
-    //{
-    //  assert(error.positions.size() == tolerances.size() &&
-    //      error.velocities.size() == tolerances.size() &&
-    //      error.accelerations.size() == tolerances.size());
-    //}
+    // Every error is ok for uninitialized tolerances
+    Base::Tolerance uninitialized;
+    std::stringstream str_1;
+    std::stringstream str_2;
+    str_1 << tolerances;
+    str_2 << uninitialized;
 
-    //for (size_t i = 0; i < tolerances.size(); ++i)
-    //{
-    //  // > 0.0 means initialized
-    //  if ((m_path_tolerances[i].position > 0.0 &&
-    //       std::abs(error.positions[i]) > m_path_tolerances[i].position) ||
-    //      (m_path_tolerances[i].velocity > 0.0 &&
-    //       std::abs(error.velocities[i]) > m_path_tolerances[i].velocity) ||
-    //      (m_path_tolerances[i].acceleration > 0.0 &&
-    //       std::abs(error.accelerations[i]) > m_path_tolerances[i].acceleration))
-    //  {
-    //    return false;
-    //  }
-    //}
+    if (str_1.str() == str_2.str())
+    {
+      return true;
+    }
+
+    auto not_within_limits = [](auto& a, auto& b)
+    {
+      return a.x > b.x || a.y > b.y || a.z > b.z;
+    };
+
+    // Check each individual dimension separately.
+    if (not_within_limits(error.pose.position, tolerances.position_error) ||
+        not_within_limits(error.pose.orientation, tolerances.orientation_error) ||
+        not_within_limits(error.twist.linear, tolerances.twist_error.linear) ||
+        not_within_limits(error.twist.angular, tolerances.twist_error.angular) ||
+        not_within_limits(error.acceleration.linear, tolerances.acceleration_error.linear) ||
+        not_within_limits(error.acceleration.angular, tolerances.acceleration_error.angular))
+    {
+      return false;
+    }
+
     return true;
   }
 
