@@ -175,4 +175,9 @@ private:
     m_action_server;
 };
 
+
 } // namespace trajectory_controllers
+
+
+#include <pass_through_controllers/pass_through_controllers.hpp>
+
