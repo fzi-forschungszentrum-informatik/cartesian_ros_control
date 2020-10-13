@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Simple action client for testing PassThroughControllers
+Simple action client for testing joint-based PassThroughControllers
 
 Use this to fire-off a quick random trajectory goal for testing.
 The trajectory will last 10 seconds.
@@ -21,7 +21,7 @@ class Client(object):
 
     def __init__(self):
         self.client = actionlib.SimpleActionClient(
-            '/hw_interface/forward_joint_trajectories/follow_trajectory',
+            '/hw_interface/forward_joint_trajectories/follow_joint_trajectory',
             FollowJointTrajectoryAction)
         self.client.wait_for_server()
 
