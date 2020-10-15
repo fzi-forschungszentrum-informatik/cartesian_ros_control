@@ -22,6 +22,18 @@
 
 namespace cartesian_ros_control
 {
+
+/**
+ * @brief A state handle for Cartesian hardware interfaces
+ *
+ * Cartesian ROS-controllers can use this handle to read the current Cartesian
+ * state from the Cartesian HW-interface and use that in their control loops.
+ * The functionality is analog to how the joint-based handles work:
+ * Implementers of the hardware_interface::RobotHW class provide a set of
+ * buffers to this handle upon instantiation and register this handle with an
+ * instance of the according CartesianStateInterface.
+ *
+ */
 class CartesianStateHandle
 {
 public:
@@ -84,9 +96,16 @@ private:
   std::string ref_frame_id_;
   const geometry_msgs::Pose* pose_;
   const geometry_msgs::Twist* twist_;
-  const geometry_msgs::Accel* accel_;  // TODO: Find better datatype
+  const geometry_msgs::Accel* accel_;
   const geometry_msgs::Accel* jerk_;
 };
+
+/**
+ * @brief A Cartesian state interface for hardware_interface::RobotHW abstractions
+ *
+ * This interface can be passed to Cartesian ROS-controllers as hardware type during initialization.
+ * The controllers then obtain read access to the underlying buffers via the \a CartesianStateHandle.
+ */
 class CartesianStateInterface : public hardware_interface::HardwareResourceManager<CartesianStateHandle>
 {
 };

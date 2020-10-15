@@ -18,6 +18,13 @@
 
 namespace cartesian_ros_control
 {
+
+/**
+ * @brief A handle for setting pose commands
+ *
+ * Cartesian ROS-controllers can use this handle to write their control signals
+ * to the according PoseCommandInterface.
+ */
 class PoseCommandHandle : public CartesianStateHandle
 {
 public:
@@ -54,6 +61,12 @@ private:
   geometry_msgs::Pose* cmd_ = { nullptr };
 };
 
+/**
+ * @brief A handle for setting twist commands
+ *
+ * Cartesian ROS-controllers can use this handle to write their control signals
+ * to the according TwistCommandInterface.
+ */
 class TwistCommandHandle : public CartesianStateHandle
 {
 public:
@@ -90,11 +103,25 @@ private:
   geometry_msgs::Twist* cmd_ = { nullptr };
 };
 
+/**
+ * @brief A Cartesian command interface for poses
+ *
+ * Use an instance of this class to provide Cartesian ROS-controllers with
+ * mechanisms to set poses as commands in the hardware_interface::RobotHW
+ * abstraction.
+ */
 class PoseCommandInterface
   : public hardware_interface::HardwareResourceManager<PoseCommandHandle, hardware_interface::ClaimResources>
 {
 };
 
+/**
+ * @brief A Cartesian command interface for twists
+ *
+ * Use an instance of this class to provide Cartesian ROS-controllers with
+ * mechanisms to set twists as commands in the hardware_interface::RobotHW
+ * abstraction.
+ */
 class TwistCommandInterface
   : public hardware_interface::HardwareResourceManager<TwistCommandHandle, hardware_interface::ClaimResources>
 {

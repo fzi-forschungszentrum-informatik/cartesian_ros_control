@@ -22,6 +22,15 @@
 
 namespace cartesian_ros_control
 {
+
+/**
+ * @brief A Cartesian ROS-controller for commanding target twists to a robot
+ *
+ * This controller makes use of a TwistCommandInterface to set a user specified
+ * twist message as reference for robot control.
+ * The according hardware_interface::RobotHW can send these commands
+ * directly to the robot driver in its write() function.
+ */
 class TwistController : public controller_interface::Controller<TwistCommandInterface>
 {
 public:
