@@ -1,0 +1,4 @@
+geometry_msgs/Vector3 position_error
+geometry_msgs/Vector3 orientation_error
+geometry_msgs/Twist twist_error
+geometry_msgs/Accel acceleration_error
