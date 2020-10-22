@@ -37,47 +37,61 @@
  */
 //----------------------------------------------------------------------
 
-#pragma once
-
-#include <controller_interface/controller.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <realtime_tools/realtime_buffer.h>
-
-#include <cartesian_ros_control/cartesian_command_interface.h>
+#include <twist_controller/twist_controller.h>
+#include <pluginlib/class_list_macros.hpp>
 
 namespace cartesian_ros_control
 {
-
-/**
- * @brief A Cartesian ROS-controller for commanding target twists to a robot
- *
- * This controller makes use of a TwistCommandInterface to set a user specified
- * twist message as reference for robot control.
- * The according hardware_interface::RobotHW can send these commands
- * directly to the robot driver in its write() function.
- */
-class TwistController : public controller_interface::Controller<TwistCommandInterface>
+bool TwistController::init(TwistCommandInterface* hw, ros::NodeHandle& n)
 {
-public:
-  TwistController() = default;
-  virtual ~TwistController() = default;
-
-  virtual bool init(TwistCommandInterface* hw, ros::NodeHandle& n) override;
-
-  virtual void starting(const ros::Time& time) override;
-
-  virtual void update(const ros::Time& /*time*/, const ros::Duration& /*period*/) override
+  std::string frame_id;
+  if (!n.getParam("frame_id", frame_id))
   {
-    handle_.setTwist(*command_buffer_.readFromRT());
+    ROS_ERROR_STREAM("Required parameter " << n.resolveName("frame_id") << " not given");
+    return false;
   }
 
-  TwistCommandHandle handle_;
-  realtime_tools::RealtimeBuffer<geometry_msgs::Twist> command_buffer_;
+  handle_ = hw->getHandle(frame_id);
+  twist_sub_ = n.subscribe<geometry_msgs::Twist>("command", 1, &TwistController::twistCallback, this);
 
-private:
-  ros::Subscriber twist_sub_;
-  void twistCallback(const geometry_msgs::TwistConstPtr& msg);
-  double gain_ = { 0.1 };
-};
+  std::vector<std::string> joint_names;
+  if (!n.getParam("joints", joint_names))
+  {
+    ROS_ERROR_STREAM("Failed to read required parameter '" << n.resolveName("joints") << ".");
+    return false;
+  }
 
+  for (auto& name : joint_names)
+  {
+    hw->claim(name);
+  }
+
+  return true;
+}
+
+void TwistController::starting(const ros::Time& time)
+{
+  geometry_msgs::Twist twist;
+  twist.linear.x = 0;
+  twist.linear.y = 0;
+  twist.linear.z = 0;
+  twist.angular.x = 0;
+  twist.angular.y = 0;
+  twist.angular.z = 0;
+  command_buffer_.writeFromNonRT(twist);
+}
+
+void TwistController::twistCallback(const geometry_msgs::TwistConstPtr& msg)
+{
+  geometry_msgs::Twist twist;
+  twist.linear.x = gain_ * msg->linear.x;
+  twist.linear.y = gain_ * msg->linear.y;
+  twist.linear.z = gain_ * msg->linear.z;
+  twist.angular.x = gain_ * msg->angular.x;
+  twist.angular.y = gain_ * msg->angular.y;
+  twist.angular.z = gain_ * msg->angular.z;
+  command_buffer_.writeFromNonRT(twist);
+}
 }  // namespace cartesian_ros_control
+
+PLUGINLIB_EXPORT_CLASS(cartesian_ros_control::TwistController, controller_interface::ControllerBase)

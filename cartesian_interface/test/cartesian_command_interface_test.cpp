@@ -39,8 +39,8 @@
 
 #include <gtest/gtest.h>
 
-#include <cartesian_ros_control/cartesian_command_interface.h>
-#include <cartesian_ros_control/cartesian_state_handle.h>
+#include <cartesian_interface/cartesian_command_interface.h>
+#include <cartesian_interface/cartesian_state_handle.h>
 
 using namespace cartesian_ros_control;
 

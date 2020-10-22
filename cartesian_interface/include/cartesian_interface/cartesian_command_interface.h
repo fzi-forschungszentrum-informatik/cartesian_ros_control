@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <cartesian_ros_control/cartesian_state_handle.h>
+#include <cartesian_interface/cartesian_state_handle.h>
 
 namespace cartesian_ros_control
 {

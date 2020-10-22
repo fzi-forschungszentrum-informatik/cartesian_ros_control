@@ -37,39 +37,47 @@
  */
 //----------------------------------------------------------------------
 
-#include <gtest/gtest.h>
+#pragma once
 
-#include <cartesian_ros_control/cartesian_state_handle.h>
+#include <controller_interface/controller.h>
+#include <geometry_msgs/TwistStamped.h>
+#include <realtime_tools/realtime_buffer.h>
 
-using namespace cartesian_ros_control;
+#include <cartesian_interface/cartesian_command_interface.h>
 
-TEST(CartesianStateHandleTest, TestConstructor)
+namespace cartesian_ros_control
 {
-  std::string reference_frame = "base";
-  std::string controlled_frame = "tool0";
-  geometry_msgs::Pose pose_buffer;
-  geometry_msgs::Twist twist_buffer;
-  geometry_msgs::Accel accel_buffer;
-  geometry_msgs::Accel jerk_buffer;
 
-  EXPECT_NO_THROW(CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, &twist_buffer,
-                                           &accel_buffer, &jerk_buffer));
-  EXPECT_THROW(
-      CartesianStateHandle obj(reference_frame, controlled_frame, nullptr, &twist_buffer, &accel_buffer, &jerk_buffer),
-      hardware_interface::HardwareInterfaceException);
-  EXPECT_THROW(
-      CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, nullptr, &accel_buffer, &jerk_buffer),
-      hardware_interface::HardwareInterfaceException);
-  EXPECT_THROW(
-      CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, &twist_buffer, nullptr, &jerk_buffer),
-      hardware_interface::HardwareInterfaceException);
-  EXPECT_THROW(
-      CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, &twist_buffer, &accel_buffer, nullptr),
-      hardware_interface::HardwareInterfaceException);
-}
-
-int main(int argc, char** argv)
+/**
+ * @brief A Cartesian ROS-controller for commanding target twists to a robot
+ *
+ * This controller makes use of a TwistCommandInterface to set a user specified
+ * twist message as reference for robot control.
+ * The according hardware_interface::RobotHW can send these commands
+ * directly to the robot driver in its write() function.
+ */
+class TwistController : public controller_interface::Controller<TwistCommandInterface>
 {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+public:
+  TwistController() = default;
+  virtual ~TwistController() = default;
+
+  virtual bool init(TwistCommandInterface* hw, ros::NodeHandle& n) override;
+
+  virtual void starting(const ros::Time& time) override;
+
+  virtual void update(const ros::Time& /*time*/, const ros::Duration& /*period*/) override
+  {
+    handle_.setTwist(*command_buffer_.readFromRT());
+  }
+
+  TwistCommandHandle handle_;
+  realtime_tools::RealtimeBuffer<geometry_msgs::Twist> command_buffer_;
+
+private:
+  ros::Subscriber twist_sub_;
+  void twistCallback(const geometry_msgs::TwistConstPtr& msg);
+  double gain_ = { 0.1 };
+};
+
+}  // namespace cartesian_ros_control

@@ -37,61 +37,39 @@
  */
 //----------------------------------------------------------------------
 
-#include <cartesian_ros_control/twist_controller.h>
-#include <pluginlib/class_list_macros.hpp>
+#include <gtest/gtest.h>
 
-namespace cartesian_ros_control
+#include <cartesian_interface/cartesian_state_handle.h>
+
+using namespace cartesian_ros_control;
+
+TEST(CartesianStateHandleTest, TestConstructor)
 {
-bool TwistController::init(TwistCommandInterface* hw, ros::NodeHandle& n)
-{
-  std::string frame_id;
-  if (!n.getParam("frame_id", frame_id))
-  {
-    ROS_ERROR_STREAM("Required parameter " << n.resolveName("frame_id") << " not given");
-    return false;
-  }
+  std::string reference_frame = "base";
+  std::string controlled_frame = "tool0";
+  geometry_msgs::Pose pose_buffer;
+  geometry_msgs::Twist twist_buffer;
+  geometry_msgs::Accel accel_buffer;
+  geometry_msgs::Accel jerk_buffer;
 
-  handle_ = hw->getHandle(frame_id);
-  twist_sub_ = n.subscribe<geometry_msgs::Twist>("command", 1, &TwistController::twistCallback, this);
-
-  std::vector<std::string> joint_names;
-  if (!n.getParam("joints", joint_names))
-  {
-    ROS_ERROR_STREAM("Failed to read required parameter '" << n.resolveName("joints") << ".");
-    return false;
-  }
-
-  for (auto& name : joint_names)
-  {
-    hw->claim(name);
-  }
-
-  return true;
+  EXPECT_NO_THROW(CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, &twist_buffer,
+                                           &accel_buffer, &jerk_buffer));
+  EXPECT_THROW(
+      CartesianStateHandle obj(reference_frame, controlled_frame, nullptr, &twist_buffer, &accel_buffer, &jerk_buffer),
+      hardware_interface::HardwareInterfaceException);
+  EXPECT_THROW(
+      CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, nullptr, &accel_buffer, &jerk_buffer),
+      hardware_interface::HardwareInterfaceException);
+  EXPECT_THROW(
+      CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, &twist_buffer, nullptr, &jerk_buffer),
+      hardware_interface::HardwareInterfaceException);
+  EXPECT_THROW(
+      CartesianStateHandle obj(reference_frame, controlled_frame, &pose_buffer, &twist_buffer, &accel_buffer, nullptr),
+      hardware_interface::HardwareInterfaceException);
 }
 
-void TwistController::starting(const ros::Time& time)
+int main(int argc, char** argv)
 {
-  geometry_msgs::Twist twist;
-  twist.linear.x = 0;
-  twist.linear.y = 0;
-  twist.linear.z = 0;
-  twist.angular.x = 0;
-  twist.angular.y = 0;
-  twist.angular.z = 0;
-  command_buffer_.writeFromNonRT(twist);
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
-
-void TwistController::twistCallback(const geometry_msgs::TwistConstPtr& msg)
-{
-  geometry_msgs::Twist twist;
-  twist.linear.x = gain_ * msg->linear.x;
-  twist.linear.y = gain_ * msg->linear.y;
-  twist.linear.z = gain_ * msg->linear.z;
-  twist.angular.x = gain_ * msg->angular.x;
-  twist.angular.y = gain_ * msg->angular.y;
-  twist.angular.z = gain_ * msg->angular.z;
-  command_buffer_.writeFromNonRT(twist);
-}
-}  // namespace cartesian_ros_control
-
-PLUGINLIB_EXPORT_CLASS(cartesian_ros_control::TwistController, controller_interface::ControllerBase)
