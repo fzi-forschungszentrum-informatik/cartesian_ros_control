@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   trajectory_msgs
   cartesian_control_msgs
   geometry_msgs
-  cartesian_ros_control
+  cartesian_interface
   controller_manager
   hardware_interface
   actionlib
@@ -115,7 +115,7 @@ catkin_package(
   trajectory_msgs
   cartesian_control_msgs
   geometry_msgs
-  cartesian_ros_control
+  cartesian_interface
   controller_manager
   hardware_interface
   actionlib

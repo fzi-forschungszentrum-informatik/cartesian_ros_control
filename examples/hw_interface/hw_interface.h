@@ -34,8 +34,8 @@
 // Cartesian-based control
 #include <cartesian_control_msgs/FollowCartesianTrajectoryAction.h>
 #include <cartesian_control_msgs/FollowCartesianTrajectoryFeedback.h>
-#include <cartesian_ros_control/cartesian_command_interface.h>
-#include <cartesian_ros_control/cartesian_state_handle.h>
+#include <cartesian_interface/cartesian_command_interface.h>
+#include <cartesian_interface/cartesian_state_handle.h>
 
 // Other
 #include <string>
