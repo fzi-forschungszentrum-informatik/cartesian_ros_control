@@ -89,17 +89,25 @@ HWInterface::HWInterface()
   // Initialize and register Cartesian trajectory command handles for PassThroughControllers
   hardware_interface::CartesianTrajectoryHandle cartesian_trajectory_handle =
     hardware_interface::CartesianTrajectoryHandle(
-        &m_cart_traj_cmd,
-        &m_cart_traj_feedback);
+      &m_cart_traj_cmd,
+      &m_cart_traj_feedback,
+      std::bind(&HWInterface::startCartesianInterpolation, this, std::placeholders::_1),
+      std::bind(&HWInterface::cancelCartesianInterpolation, this));
+
   m_cart_traj_interface.registerHandle(cartesian_trajectory_handle);
   registerInterface(&m_cart_traj_interface);
 
   // Robot dummy communication
-  m_robot_communication =
+  m_joint_based_communication =
     std::make_unique<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >(
       "/robot_dummy/vendor_joint_controller/follow_joint_trajectory", true);
 
-  m_robot_communication->waitForServer();
+  m_cartesian_based_communication =
+    std::make_unique<actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction> >(
+      "/robot_dummy/vendor_cartesian_controller/follow_cartesian_trajectory", true);
+
+  m_joint_based_communication->waitForServer();
+  m_cartesian_based_communication->waitForServer();
 
   ROS_INFO("Example HW interface is ready");
 }
@@ -119,24 +127,43 @@ void HWInterface::write(const ros::Time& time, const ros::Duration& period)
 
 void HWInterface::startJointInterpolation(const hardware_interface::JointTrajectory& trajectory)
 {
-  control_msgs::FollowJointTrajectoryGoalConstPtr test;
-
-  m_robot_communication->sendGoal(
+  m_joint_based_communication->sendGoal(
     trajectory,
     0, // no done callback
     0, // no active callback
     std::bind(
-      &HWInterface::handleFeedback, this, std::placeholders::_1)); // Process feedback continuously
+      &HWInterface::handleJointFeedback, this, std::placeholders::_1)); // Process feedback continuously
+}
+
+void HWInterface::startCartesianInterpolation(const hardware_interface::CartesianTrajectory& trajectory)
+{
+  m_cartesian_based_communication->sendGoal(
+    trajectory,
+    0, // no done callback
+    0, // no active callback
+    std::bind(
+      &HWInterface::handleCartesianFeedback, this, std::placeholders::_1)); // Process feedback continuously
 }
 
 void HWInterface::cancelJointInterpolation()
 {
-  m_robot_communication->cancelGoal();
+  m_joint_based_communication->cancelGoal();
 }
 
-void HWInterface::handleFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)
+void HWInterface::cancelCartesianInterpolation()
+{
+  m_cartesian_based_communication->cancelGoal();
+}
+
+void HWInterface::handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)
 {
   m_jnt_traj_interface.getHandle("joint_trajectory_handle").setFeedback(*feedback);
+}
+
+void HWInterface::handleCartesianFeedback(
+  const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback)
+{
+  m_cart_traj_interface.getHandle("cartesian_trajectory_handle").setFeedback(*feedback);
 }
 
 } // namespace examples

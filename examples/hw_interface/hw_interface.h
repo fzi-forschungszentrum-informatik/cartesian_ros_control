@@ -14,31 +14,34 @@
 #pragma once
 
 // ROS
-#include "control_msgs/FollowJointTrajectoryAction.h"
-#include "control_msgs/FollowJointTrajectoryActionFeedback.h"
-#include "control_msgs/FollowJointTrajectoryFeedback.h"
 #include "ros/publisher.h"
 #include "ros/subscriber.h"
-#include <array>
-#include <memory>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Accel.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
-
-// ROS control
-#include <hardware_interface/joint_command_interface.h>
-#include <hardware_interface/joint_state_interface.h>
 #include <hardware_interface/robot_hw.h>
 #include <pass_through_controllers/trajectory_interface.h>
-#include <cartesian_ros_control/cartesian_state_handle.h>
+
+// Joint-based control
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <control_msgs/FollowJointTrajectoryFeedback.h>
+#include <hardware_interface/joint_command_interface.h>
+#include <hardware_interface/joint_state_interface.h>
+
+// Cartesian-based control
+#include <cartesian_control_msgs/FollowCartesianTrajectoryAction.h>
+#include <cartesian_control_msgs/FollowCartesianTrajectoryFeedback.h>
+#include <cartesian_ros_control/cartesian_command_interface.h>
+#include <cartesian_ros_control/cartesian_state_handle.h>
 
 // Other
 #include <string>
 #include <vector>
+#include <array>
+#include <memory>
 
 namespace examples {
 
@@ -63,11 +66,28 @@ private:
   void startJointInterpolation(const hardware_interface::JointTrajectory& trajectory);
 
   /**
+   * @brief Dummy implementation for Cartesian interpolation on the robot
+   *
+   * Passes this trajectory straight to a
+   * CartesianTrajectoryController to mimic external interpolation.
+   *
+   * @param trajectory The trajectory blob to forward to the vendor driver
+   */
+  void startCartesianInterpolation(const hardware_interface::CartesianTrajectory& trajectory);
+
+  /**
    * @brief Dummy implementation for canceling a running joint interpolation on the robot
    *
    * Cancels the active goal of the JointTrajectoryController via preempt request.
    */
   void cancelJointInterpolation();
+
+  /**
+   * @brief Dummy implementation for canceling a running Cartesian interpolation on the robot
+   *
+   * Cancels the active goal of the CartesianTrajectoryController via preempt request.
+   */
+  void cancelCartesianInterpolation();
 
   //! Actuated joints in order from base to tip
   std::vector<std::string> m_joint_names;
@@ -106,8 +126,14 @@ private:
 
   // Robot connection and communication
   std::unique_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >
-    m_robot_communication;
-  void handleFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback);
+    m_joint_based_communication;
+  void handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback);
+
+  std::unique_ptr<
+    actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction> >
+    m_cartesian_based_communication;
+  void handleCartesianFeedback(
+    const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback);
 };
 
 } // namespace examples
