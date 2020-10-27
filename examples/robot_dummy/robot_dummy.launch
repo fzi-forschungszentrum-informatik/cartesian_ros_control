@@ -29,8 +29,13 @@
                 <rosparam file="$(find pass_through_controllers)/examples/robot_dummy/controllers.yaml" command="load"></rosparam>
 
                 <!-- Spawn controllers -->
-                <node name="controller_spawner" pkg="controller_manager" type="spawner"
+                <node name="running_controller_spawner" pkg="controller_manager" type="spawner"
                         args="
+                        vendor_cartesian_controller
+                        "
+                />
+                <node name="stopped_controller_spawner" pkg="controller_manager" type="spawner"
+                        args="--stopped
                         vendor_joint_controller
                         "
                 />

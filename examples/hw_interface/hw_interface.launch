@@ -20,10 +20,14 @@
                 <rosparam file="$(find pass_through_controllers)/examples/hw_interface/controllers.yaml" command="load"></rosparam>
 
                 <!-- Spawn controllers -->
-                <node name="controller_spawner" pkg="controller_manager" type="spawner"
+                <node name="running_controller_spawner" pkg="controller_manager" type="spawner"
+                        args="
+                        forward_cartesian_trajectories
+                        "
+                />
+                <node name="stopped_controller_spawner" pkg="controller_manager" type="spawner"
                         args="--stopped
                         forward_joint_trajectories
-                        forward_cartesian_trajectories
                         conflicting_joint_controller
                         "
                 />
