@@ -1,10 +1,14 @@
 <launch>
 
         <!-- A dummy robot to mimic vendor control -->
-        <include file="$(find pass_through_controllers)/examples/robot_dummy/robot_dummy.launch"/>
+        <include file="$(find pass_through_controllers)/examples/robot_dummy/robot_dummy.launch">
+                <arg name="debug" default="false"/>
+        </include>
 
         <!-- An example hw interface to show the usage of pass-through controllers -->
-        <include file="$(find pass_through_controllers)/examples/hw_interface/hw_interface.launch"/>
+        <include file="$(find pass_through_controllers)/examples/hw_interface/hw_interface.launch">
+                <arg name="debug" default="false"/>
+        </include>
 
         <!-- Robot_description -->
         <param name="robot_description"
