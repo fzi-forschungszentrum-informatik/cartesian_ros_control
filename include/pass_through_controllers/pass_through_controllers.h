@@ -13,8 +13,9 @@
 #pragma once
 
 // ROS control
-#include <controller_interface/controller.h>
+#include <controller_interface/multi_interface_controller.h>
 #include <memory>
+#include <hardware_interface/robot_hw.h>
 #include <pass_through_controllers/trajectory_interface.h>
 
 // Joint-based
@@ -70,7 +71,7 @@ struct CartesianBase
  */
 template <class TrajectoryInterface>
 class PassThroughController
-  : public controller_interface::Controller<TrajectoryInterface>
+  : public controller_interface::MultiInterfaceController<TrajectoryInterface>
   , public std::conditional<
       std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
       JointBase,
@@ -86,7 +87,7 @@ public:
       JointBase,
       CartesianBase>::type;
 
-  bool init(TrajectoryInterface* traj_interface,
+  bool init(hardware_interface::RobotHW* hw,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh);
 

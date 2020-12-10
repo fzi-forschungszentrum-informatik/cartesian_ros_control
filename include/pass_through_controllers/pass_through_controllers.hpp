@@ -17,13 +17,14 @@
 // Other
 #include "ros/duration.h"
 #include "ros/timer.h"
+#include "ur_controllers/speed_scaling_interface.h"
 #include <sstream>
 #include <string>
 
 namespace trajectory_controllers {
 
   template <class TrajectoryInterface>
-  bool PassThroughController<TrajectoryInterface>::init(TrajectoryInterface* traj_interface,
+  bool PassThroughController<TrajectoryInterface>::init(hardware_interface::RobotHW* hw,
             ros::NodeHandle& root_nh,
             ros::NodeHandle& controller_nh)
   {
@@ -34,6 +35,9 @@ namespace trajectory_controllers {
                                          << "/joints from parameter server");
       return false;
     }
+
+    // Availability checked by MultiInterfaceController
+    auto traj_interface = hw->get<TrajectoryInterface>();
 
     try
     {
