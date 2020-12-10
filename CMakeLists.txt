@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
   hardware_interface
   actionlib
+  ur_controllers
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -93,10 +95,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  examples/cfg/SpeedScaling.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -119,6 +120,8 @@ catkin_package(
   controller_manager
   hardware_interface
   actionlib
+  ur_controllers
+  dynamic_reconfigure
 #  DEPENDS system_lib
 )
 

@@ -38,6 +38,18 @@ HWInterface::HWInterface()
   error += nh.getParam("ref_frame_id", m_ref_frame_id);
   error += nh.getParam("frame_id", m_frame_id);
 
+  // Connect dynamic reconfigure and overwrite the default values with values
+  // on the parameter server. This is done automatically if parameters with
+  // the according names exist.
+  m_callback_type = std::bind(&HWInterface::dynamicReconfigureCallback,
+                              this,
+                              std::placeholders::_1,
+                              std::placeholders::_2);
+
+  m_reconfig_server =
+    std::make_shared<dynamic_reconfigure::Server<SpeedScalingConfig> >(nh);
+  m_reconfig_server->setCallback(m_callback_type);
+
   const int nr_joints = m_joint_names.size();
   m_cmd.resize(nr_joints);
   m_pos.resize(nr_joints);
@@ -97,6 +109,14 @@ HWInterface::HWInterface()
   m_cart_traj_interface.registerHandle(cartesian_trajectory_handle);
   registerInterface(&m_cart_traj_interface);
 
+  // Initialize and register speed scaling.
+  // Note: The handle's name is a convention.
+  // ROS-controllers will use this name when calling getHandle().
+  m_speedsc_interface.registerHandle(
+      ur_controllers::SpeedScalingHandle("speed_scaling", &m_speed_scaling));
+  registerInterface(&m_speedsc_interface);
+
+
   // Robot dummy communication
   m_joint_based_communication =
     std::make_unique<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >(
@@ -153,6 +173,12 @@ void HWInterface::cancelJointInterpolation()
 void HWInterface::cancelCartesianInterpolation()
 {
   m_cartesian_based_communication->cancelGoal();
+}
+
+void HWInterface::dynamicReconfigureCallback(SpeedScalingConfig& config, uint32_t level)
+{
+  // Let's hope for "thread safety" with fundamental types.
+  m_speed_scaling = config.speed_scaling;
 }
 
 void HWInterface::handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)

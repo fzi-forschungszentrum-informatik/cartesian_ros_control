@@ -37,6 +37,13 @@
 #include <cartesian_interface/cartesian_command_interface.h>
 #include <cartesian_interface/cartesian_state_handle.h>
 
+// Dynamic reconfigure
+#include <dynamic_reconfigure/server.h>
+#include <pass_through_controllers/SpeedScalingConfig.h>
+
+// Speed scaling
+#include <ur_controllers/speed_scaling_interface.h>
+
 // Other
 #include <string>
 #include <vector>
@@ -98,6 +105,7 @@ private:
   hardware_interface::PositionJointInterface m_jnt_pos_interface;
   hardware_interface::JointTrajectoryInterface m_jnt_traj_interface;
   hardware_interface::CartesianTrajectoryInterface m_cart_traj_interface;
+  ur_controllers::SpeedScalingInterface m_speedsc_interface;
 
   // Buffers
   std::vector<double> m_cmd;
@@ -108,10 +116,31 @@ private:
   hardware_interface::JointTrajectoryFeedback m_jnt_traj_feedback;
   hardware_interface::CartesianTrajectory m_cart_traj_cmd;
   hardware_interface::CartesianTrajectoryFeedback m_cart_traj_feedback;
+  double m_speed_scaling;
 
   // Configuration
   std::string m_ref_frame_id;
   std::string m_frame_id;
+
+  // Dynamic reconfigure
+  using SpeedScalingConfig = pass_through_controllers::SpeedScalingConfig;
+
+  /**
+   * @brief Use dynamic reconfigure to mimic the driver's speed scaling
+   *
+   * Note: The speed scaling interface used is not made for thread safety.
+   * In real driver code, that's not a problem, because robot drivers will
+   * operate in synchronous read-update-write cycles. Here, we use this
+   * interface under somewhat unrealistic "dynamic reconfigure" conditions for
+   * testing purposes.
+   *
+   * @param config The speed scaling from 0 to 1.0
+   * @param level Not used
+   */
+  void dynamicReconfigureCallback(SpeedScalingConfig& config, uint32_t level);
+
+  std::shared_ptr<dynamic_reconfigure::Server<SpeedScalingConfig>> m_reconfig_server;
+  dynamic_reconfigure::Server<SpeedScalingConfig>::CallbackType m_callback_type;
 
   // States
   geometry_msgs::Pose m_cartesian_pose;

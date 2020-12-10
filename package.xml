@@ -58,6 +58,8 @@
   <build_depend>controller_manager</build_depend>
   <build_depend>hardware_interface</build_depend>
   <build_depend>actionlib</build_depend>
+  <build_depend>ur_controllers</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
 
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>trajectory_msgs</build_export_depend>
@@ -67,6 +69,8 @@
   <build_export_depend>controller_manager</build_export_depend>
   <build_export_depend>hardware_interface</build_export_depend>
   <build_export_depend>actionlib</build_export_depend>
+  <build_export_depend>ur_controllers</build_export_depend>
+  <build_export_depend>dynamic_reconfigure</build_export_depend>
 
   <exec_depend>roscpp</exec_depend>
   <exec_depend>trajectory_msgs</exec_depend>
@@ -76,6 +80,8 @@
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>hardware_interface</exec_depend>
   <exec_depend>actionlib</exec_depend>
+  <exec_depend>ur_controllers</exec_depend>
+  <exec_depend>dynamic_reconfigure</exec_depend>
 
 
   <!-- This is important for the export to work -->
