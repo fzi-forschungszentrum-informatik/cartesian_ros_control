@@ -24,7 +24,7 @@
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "robot_dummy_interface");
+  ros::init(argc, argv, "hw_interface_example");
   ros::NodeHandle nh;
   examples::HWInterface hw_interface;
   controller_manager::ControllerManager controller_manager(&hw_interface);
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 
   while (ros::ok())
   {
-    auto period = rate.cycleTime();  // use nominal cycle
+    auto period = rate.expectedCycleTime();  // use nominal cycle
 
     hw_interface.read(ros::Time::now(), period);
     hw_interface.write(ros::Time::now(), period);
