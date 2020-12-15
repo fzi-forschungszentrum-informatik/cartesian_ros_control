@@ -13,8 +13,8 @@
 #pragma once
 
 // ROS control
+#include "ur_controllers/speed_scaling_interface.h"
 #include <controller_interface/multi_interface_controller.h>
-#include <memory>
 #include <hardware_interface/robot_hw.h>
 #include <pass_through_controllers/trajectory_interface.h>
 
@@ -33,6 +33,7 @@
 // Other
 #include <actionlib/server/simple_action_server.h>
 #include <vector>
+#include <memory>
 
 
 
@@ -71,13 +72,20 @@ struct CartesianBase
  */
 template <class TrajectoryInterface>
 class PassThroughController
-  : public controller_interface::MultiInterfaceController<TrajectoryInterface>
+  : public controller_interface::MultiInterfaceController<TrajectoryInterface,
+                                                          ur_controllers::SpeedScalingInterface>
   , public std::conditional<
       std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
       JointBase,
       CartesianBase>::type
 {
 public:
+  PassThroughController()
+    : controller_interface::MultiInterfaceController<TrajectoryInterface,
+                                                     ur_controllers::SpeedScalingInterface>(
+        true) // Make speed scaling optional
+  {
+  }
 
   // Alias for full qualifications of inherited types.
   // This enables a compact definition of member functions for both joint-based
@@ -136,6 +144,18 @@ public:
 
 private:
   /**
+   * @brief Container for easy time management
+   *
+   */
+  struct ActionDuration
+  {
+    ActionDuration() : target(0.0), current(0.0) {}
+
+    ros::Duration target;  ///< Target duration of the current action.
+    ros::Duration current; ///< Real duration of the current action.
+  };
+
+  /**
    * @brief  Monitor the trajectory execution
    *
    * @param feedback The feedback to use for evaluating tolerances
@@ -163,11 +183,13 @@ private:
   bool isValid(const typename Base::GoalConstPtr& goal);
 
   /**
-   * @brief Gets called when the action goal's time is up.
+   * @brief Call this when the action goal's time is up.
    */
-  void timesUpCB(const ros::TimerEvent& event);
+  void timesUp();
 
   bool m_done;
+  ActionDuration m_action_duration;
+  std::unique_ptr<ur_controllers::SpeedScalingHandle> m_speed_scaling;
   std::vector<std::string> m_joint_names;
   typename Base::Tolerance m_path_tolerances;
   typename Base::Tolerance m_goal_tolerances;

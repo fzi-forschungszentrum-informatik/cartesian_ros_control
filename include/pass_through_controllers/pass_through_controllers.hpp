@@ -38,6 +38,11 @@ namespace trajectory_controllers {
 
     // Availability checked by MultiInterfaceController
     auto traj_interface = hw->get<TrajectoryInterface>();
+    if (!traj_interface)
+    {
+      ROS_ERROR_STREAM(controller_nh.getNamespace() << ": No suitable trajectory interface found.");
+      return false;
+    }
 
     try
     {
@@ -52,6 +57,22 @@ namespace trajectory_controllers {
           << ex.what());
       return false;
     }
+
+    // Use speed scaling interface if available (optional).
+    auto speed_scaling_interface = hw->get<ur_controllers::SpeedScalingInterface>();
+    if (!speed_scaling_interface)
+    {
+      ROS_INFO_STREAM(
+        controller_nh.getNamespace()
+        << ": Your RobotHW seems not to provide speed scaling. Starting without this feature.");
+      m_speed_scaling = nullptr;
+    }
+    else
+    {
+      m_speed_scaling = std::make_unique<ur_controllers::SpeedScalingHandle>(
+        speed_scaling_interface->getHandle("speed_scaling"));
+    }
+
 
     // Action server
     m_action_server.reset(new actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction>(
@@ -75,6 +96,7 @@ namespace trajectory_controllers {
   template <class TrajectoryInterface>
   void PassThroughController<TrajectoryInterface>::starting(const ros::Time& time)
   {
+    m_done = true;  // wait with update() until the next goal comes in.
   }
 
   template <class TrajectoryInterface>
@@ -94,8 +116,12 @@ namespace trajectory_controllers {
   template <class TrajectoryInterface>
   void PassThroughController<TrajectoryInterface>::update(const ros::Time& time, const ros::Duration& period)
   {
-    if (m_action_server->isActive())
+    if (m_action_server->isActive() && !m_done)
     {
+      // Measure action duration and apply speed scaling if available.
+      const double factor = (m_speed_scaling) ? *m_speed_scaling->getScalingFactor() : 1.0;
+      m_action_duration.current += period * factor;
+
       typename Base::TrajectoryFeedback f = m_trajectory_handle->getFeedback();
       m_action_server->publishFeedback(f);
 
@@ -103,6 +129,12 @@ namespace trajectory_controllers {
       // action server if special criteria are met.
       // Also set the m_done flag once that happens.
       monitorExecution(f);
+
+      // Time is up. Check goal tolerances and set terminal state.
+      if (m_action_duration.current >= m_action_duration.target)
+      {
+        timesUp();
+      }
     }
   }
 
@@ -130,23 +162,22 @@ namespace trajectory_controllers {
     m_goal_tolerances = goal->goal_tolerance;
     
     // Notify the  vendor robot control.
-    m_done = false;
     m_trajectory_handle->setCommand(*goal);
 
-    // Start timer
-    ros::Duration action_duration =
+    // Time keeping
+    m_action_duration.current = ros::Duration(0.0);
+    m_action_duration.target =
       goal->trajectory.points.back().time_from_start + goal->goal_time_tolerance;
-    ros::Timer timer =
-      ros::NodeHandle().createTimer(action_duration, &PassThroughController::timesUpCB, this, true);
 
+    m_done = false;
     while (!m_done)
     {
       ros::Duration(0.01).sleep();
     }
 
     // When done, the action server is in one of the three states:
-    // 1) succeeded: managed in update()
-    // 2) aborted: managed in update()
+    // 1) succeeded: managed in timesUp()
+    // 2) aborted: managed in update() or in timesUp()
     // 3) preempted: managed in preemptCB()
   }
 
@@ -269,7 +300,7 @@ namespace trajectory_controllers {
   }
 
   template <class TrajectoryInterface>
-  void PassThroughController<TrajectoryInterface>::timesUpCB(const ros::TimerEvent& event)
+  void PassThroughController<TrajectoryInterface>::timesUp()
   {
     // Use most recent feedback
     typename Base::TrajectoryPoint p = m_trajectory_handle->getFeedback().error;
