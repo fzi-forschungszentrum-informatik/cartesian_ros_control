@@ -70,7 +70,7 @@ namespace trajectory_controllers {
     else
     {
       m_speed_scaling = std::make_unique<ur_controllers::SpeedScalingHandle>(
-        speed_scaling_interface->getHandle("speed_scaling"));
+        speed_scaling_interface->getHandle("speed_scaling_factor"));
     }
 
 
