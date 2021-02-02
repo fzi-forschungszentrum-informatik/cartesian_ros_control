@@ -1,3 +1,20 @@
+# For testing the new pose command interface
+cartesian_trajectory_controller:
+
+    # Assumes frames according to the driver's convention.
+    type: "pose_controllers/CartesianTrajectoryController"
+    base: "base"
+    tip: "tool0_controller"
+
+    joints:
+    - joint1
+    - joint2
+    - joint3
+    - joint4
+    - joint5
+    - joint6
+
+
 # A controller to forward joint trajectories to a native robot controller for
 # interpolation.
 forward_joint_trajectories:

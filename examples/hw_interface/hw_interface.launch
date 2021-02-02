@@ -29,6 +29,7 @@
                         args="--stopped
                         forward_joint_trajectories
                         conflicting_joint_controller
+                        cartesian_trajectory_controller
                         "
                 />
         </group>

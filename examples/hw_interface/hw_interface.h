@@ -101,6 +101,7 @@ private:
 
   // Interfaces
   cartesian_ros_control::CartesianStateInterface m_cart_state_interface;
+  cartesian_ros_control::PoseCommandInterface m_pose_cmd_interface;
   hardware_interface::JointStateInterface m_jnt_state_interface;
   hardware_interface::PositionJointInterface m_jnt_pos_interface;
   hardware_interface::JointTrajectoryInterface m_jnt_traj_interface;
@@ -117,6 +118,7 @@ private:
   hardware_interface::CartesianTrajectory m_cart_traj_cmd;
   hardware_interface::CartesianTrajectoryFeedback m_cart_traj_feedback;
   double m_speed_scaling;
+  geometry_msgs::Pose m_pose_cmd;
 
   // Configuration
   std::string m_ref_frame_id;

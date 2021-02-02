@@ -13,6 +13,7 @@
 
 #include "hw_interface.h"
 #include "actionlib/client/simple_action_client.h"
+#include "cartesian_interface/cartesian_command_interface.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "control_msgs/FollowJointTrajectoryActionGoal.h"
 #include "control_msgs/FollowJointTrajectoryFeedback.h"
@@ -33,10 +34,9 @@ HWInterface::HWInterface()
     throw std::logic_error("Failed to initialize ros control.");
   }
 
-  // TODO:
-  bool error = false;
-  error += nh.getParam("ref_frame_id", m_ref_frame_id);
-  error += nh.getParam("frame_id", m_frame_id);
+  // Current UR driver convention
+  m_ref_frame_id = "base";
+  m_frame_id = "tool0_controller";
 
   // Connect dynamic reconfigure and overwrite the default values with values
   // on the parameter server. This is done automatically if parameters with
@@ -76,6 +76,12 @@ HWInterface::HWInterface()
                                                 &m_cartesian_jerk);
   m_cart_state_interface.registerHandle(cartesian_state_handle);
   registerInterface(&m_cart_state_interface);
+
+  // Initialize and register a Cartesian pose command handle
+  cartesian_ros_control::PoseCommandHandle pose_cmd_handle =
+    cartesian_ros_control::PoseCommandHandle(cartesian_state_handle, &m_pose_cmd);
+  m_pose_cmd_interface.registerHandle(pose_cmd_handle);
+  registerInterface(&m_pose_cmd_interface);
 
   // Initialize and register joint position command handles.
   for (int i = 0; i < nr_joints; ++i)
