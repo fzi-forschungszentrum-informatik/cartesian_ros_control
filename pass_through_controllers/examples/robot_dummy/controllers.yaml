@@ -1,0 +1,32 @@
+## A dummy replacement for a native Cartesian trajectory controller
+vendor_cartesian_controller:
+
+    # Builds its own kinematics chain using existing URDF links.
+    type: "position_controllers/CartesianTrajectoryController"
+    base: "base_link"
+    tip: "tool0"
+
+    joints:
+    - joint1
+    - joint2
+    - joint3
+    - joint4
+    - joint5
+    - joint6
+
+# A dummy replacement for a native joint trajectory controller
+vendor_joint_controller:
+    type: "position_controllers/JointTrajectoryController"
+    joints:
+    - joint1
+    - joint2
+    - joint3
+    - joint4
+    - joint5
+    - joint6
+
+
+# Provide feedback on joint states
+joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 50

@@ -1,0 +1,11 @@
+# HW interface configuration
+
+control_rate: 125
+
+joints:
+    - joint1
+    - joint2
+    - joint3
+    - joint4
+    - joint5
+    - joint6
