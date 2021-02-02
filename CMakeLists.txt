@@ -16,7 +16,6 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
   hardware_interface
   actionlib
-  ur_controllers
   dynamic_reconfigure
 )
 
@@ -120,7 +119,6 @@ catkin_package(
   controller_manager
   hardware_interface
   actionlib
-  ur_controllers
   dynamic_reconfigure
 #  DEPENDS system_lib
 )

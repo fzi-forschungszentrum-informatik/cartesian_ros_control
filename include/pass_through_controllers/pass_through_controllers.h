@@ -13,7 +13,7 @@
 #pragma once
 
 // ROS control
-#include "ur_controllers/speed_scaling_interface.h"
+#include <cartesian_interface/speed_scaling_interface.h>
 #include <controller_interface/multi_interface_controller.h>
 #include <hardware_interface/robot_hw.h>
 #include <pass_through_controllers/trajectory_interface.h>
@@ -73,7 +73,7 @@ struct CartesianBase
 template <class TrajectoryInterface>
 class PassThroughController
   : public controller_interface::MultiInterfaceController<TrajectoryInterface,
-                                                          ur_controllers::SpeedScalingInterface>
+                                                          hardware_interface::SpeedScalingInterface>
   , public std::conditional<
       std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
       JointBase,
@@ -82,7 +82,7 @@ class PassThroughController
 public:
   PassThroughController()
     : controller_interface::MultiInterfaceController<TrajectoryInterface,
-                                                     ur_controllers::SpeedScalingInterface>(
+                                                     hardware_interface::SpeedScalingInterface>(
         true) // Make speed scaling optional
   {
   }
@@ -189,7 +189,7 @@ private:
 
   bool m_done;
   ActionDuration m_action_duration;
-  std::unique_ptr<ur_controllers::SpeedScalingHandle> m_speed_scaling;
+  std::unique_ptr<hardware_interface::SpeedScalingHandle> m_speed_scaling;
   std::vector<std::string> m_joint_names;
   typename Base::Tolerance m_path_tolerances;
   typename Base::Tolerance m_goal_tolerances;

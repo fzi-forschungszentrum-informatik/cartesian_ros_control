@@ -113,7 +113,7 @@ HWInterface::HWInterface()
   // Note: The handle's name is a convention.
   // ROS-controllers will use this name when calling getHandle().
   m_speedsc_interface.registerHandle(
-      ur_controllers::SpeedScalingHandle("speed_scaling_factor", &m_speed_scaling));
+      hardware_interface::SpeedScalingHandle("speed_scaling_factor", &m_speed_scaling));
   registerInterface(&m_speedsc_interface);
 
 

@@ -42,7 +42,7 @@
 #include <pass_through_controllers/SpeedScalingConfig.h>
 
 // Speed scaling
-#include <ur_controllers/speed_scaling_interface.h>
+#include <cartesian_interface/speed_scaling_interface.h>
 
 // Other
 #include <string>
@@ -105,7 +105,7 @@ private:
   hardware_interface::PositionJointInterface m_jnt_pos_interface;
   hardware_interface::JointTrajectoryInterface m_jnt_traj_interface;
   hardware_interface::CartesianTrajectoryInterface m_cart_traj_interface;
-  ur_controllers::SpeedScalingInterface m_speedsc_interface;
+  hardware_interface::SpeedScalingInterface m_speedsc_interface;
 
   // Buffers
   std::vector<double> m_cmd;

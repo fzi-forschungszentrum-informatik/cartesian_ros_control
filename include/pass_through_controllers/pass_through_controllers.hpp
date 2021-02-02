@@ -17,7 +17,7 @@
 // Other
 #include "ros/duration.h"
 #include "ros/timer.h"
-#include "ur_controllers/speed_scaling_interface.h"
+#include "cartesian_interface/speed_scaling_interface.h"
 #include <sstream>
 #include <string>
 
@@ -59,7 +59,7 @@ namespace trajectory_controllers {
     }
 
     // Use speed scaling interface if available (optional).
-    auto speed_scaling_interface = hw->get<ur_controllers::SpeedScalingInterface>();
+    auto speed_scaling_interface = hw->get<hardware_interface::SpeedScalingInterface>();
     if (!speed_scaling_interface)
     {
       ROS_INFO_STREAM(
@@ -69,7 +69,7 @@ namespace trajectory_controllers {
     }
     else
     {
-      m_speed_scaling = std::make_unique<ur_controllers::SpeedScalingHandle>(
+      m_speed_scaling = std::make_unique<hardware_interface::SpeedScalingHandle>(
         speed_scaling_interface->getHandle("speed_scaling_factor"));
     }
 
