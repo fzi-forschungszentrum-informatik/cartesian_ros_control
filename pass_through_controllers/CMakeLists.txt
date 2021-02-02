@@ -109,7 +109,7 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES pass_through_controllers
+  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS
   roscpp
   trajectory_msgs
