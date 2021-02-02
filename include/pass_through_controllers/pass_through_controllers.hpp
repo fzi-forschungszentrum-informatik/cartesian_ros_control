@@ -253,6 +253,8 @@ namespace trajectory_controllers {
 
     for (size_t i = 0; i < tolerances.size(); ++i)
     {
+      // TODO: Velocity and acceleration limits will be affected by speed scaling.
+      // We need a policy here.
       // > 0.0 means initialized
       if ((m_path_tolerances[i].position > 0.0 &&
            std::abs(error.positions[i]) > m_path_tolerances[i].position) ||
@@ -344,6 +346,8 @@ namespace trajectory_controllers {
       // When the time is up on the ROS side, the vendor trajectory controller
       // might still be running.
       // What's a suitable policy for this in ROS?
+
+      // TODO: We probably should abort in this case.
     }
     else // Succeed
     {
