@@ -57,7 +57,7 @@ namespace trajectory_controllers {
             ros::NodeHandle& controller_nh)
   {
     // Get names of joints from the parameter server
-    if (!controller_nh.getParam("joints", m_joint_names))
+    if (!controller_nh.getParam("joints", joint_names_))
     {
       ROS_ERROR_STREAM("Failed to load " << controller_nh.getNamespace()
                                          << "/joints from parameter server");
@@ -74,8 +74,8 @@ namespace trajectory_controllers {
 
     try
     {
-      traj_interface->setResources(m_joint_names);
-      m_trajectory_handle = std::make_unique<typename Base::TrajectoryHandle>(
+      traj_interface->setResources(joint_names_);
+      trajectory_handle_ = std::make_unique<typename Base::TrajectoryHandle>(
           traj_interface->getHandle(Base::TrajectoryHandle::getName()));
     }
     catch (hardware_interface::HardwareInterfaceException& ex)
@@ -93,17 +93,17 @@ namespace trajectory_controllers {
       ROS_INFO_STREAM(
         controller_nh.getNamespace()
         << ": Your RobotHW seems not to provide speed scaling. Starting without this feature.");
-      m_speed_scaling = nullptr;
+      speed_scaling_ = nullptr;
     }
     else
     {
-      m_speed_scaling = std::make_unique<hardware_interface::SpeedScalingHandle>(
+      speed_scaling_ = std::make_unique<hardware_interface::SpeedScalingHandle>(
         speed_scaling_interface->getHandle("speed_scaling_factor"));
     }
 
 
     // Action server
-    m_action_server.reset(new actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction>(
+    action_server_.reset(new actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction>(
       controller_nh,
       std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value
         ? "follow_joint_trajectory"
@@ -113,10 +113,10 @@ namespace trajectory_controllers {
 
     // This is the cleanest method to notify the vendor robot driver of
     // preempted requests.
-    m_action_server->registerPreemptCallback(
+    action_server_->registerPreemptCallback(
         std::bind(&PassThroughController::preemptCB, this));
 
-    m_action_server->start();
+    action_server_->start();
 
     return true;
   }
@@ -124,19 +124,19 @@ namespace trajectory_controllers {
   template <class TrajectoryInterface>
   void PassThroughController<TrajectoryInterface>::starting(const ros::Time& time)
   {
-    m_done = true;  // wait with update() until the next goal comes in.
+    done_ = true;  // wait with update() until the next goal comes in.
   }
 
   template <class TrajectoryInterface>
   void PassThroughController<TrajectoryInterface>::stopping(const ros::Time& time)
   {
-    if (m_action_server->isActive())
+    if (action_server_->isActive())
     {
       // Set canceled flag in the action result
-      m_action_server->setPreempted();
+      action_server_->setPreempted();
 
       // Stop trajectory interpolation on the robot
-      m_trajectory_handle->cancelCommand();
+      trajectory_handle_->cancelCommand();
     }
 
   }
@@ -144,22 +144,22 @@ namespace trajectory_controllers {
   template <class TrajectoryInterface>
   void PassThroughController<TrajectoryInterface>::update(const ros::Time& time, const ros::Duration& period)
   {
-    if (m_action_server->isActive() && !m_done)
+    if (action_server_->isActive() && !done_)
     {
       // Measure action duration and apply speed scaling if available.
-      const double factor = (m_speed_scaling) ? *m_speed_scaling->getScalingFactor() : 1.0;
-      m_action_duration.current += period * factor;
+      const double factor = (speed_scaling_) ? *speed_scaling_->getScalingFactor() : 1.0;
+      action_duration_.current += period * factor;
 
-      typename Base::TrajectoryFeedback f = m_trajectory_handle->getFeedback();
-      m_action_server->publishFeedback(f);
+      typename Base::TrajectoryFeedback f = trajectory_handle_->getFeedback();
+      action_server_->publishFeedback(f);
 
       // Check tolerances on each call and set terminal conditions for the
       // action server if special criteria are met.
-      // Also set the m_done flag once that happens.
+      // Also set the done_ flag once that happens.
       monitorExecution(f);
 
       // Time is up. Check goal tolerances and set terminal state.
-      if (m_action_duration.current >= m_action_duration.target)
+      if (action_duration_.current >= action_duration_.target)
       {
         timesUp();
       }
@@ -177,7 +177,7 @@ namespace trajectory_controllers {
       ROS_ERROR("Can't accept new action goals. Controller is not running.");
       typename Base::FollowTrajectoryResult result;
       result.error_code = Base::FollowTrajectoryResult::INVALID_GOAL;
-      m_action_server->setAborted(result);
+      action_server_->setAborted(result);
       return;
     }
 
@@ -186,19 +186,19 @@ namespace trajectory_controllers {
     {
       return;
     }
-    m_path_tolerances = goal->path_tolerance;
-    m_goal_tolerances = goal->goal_tolerance;
+    path_tolerances_ = goal->path_tolerance;
+    goal_tolerances_ = goal->goal_tolerance;
     
     // Notify the  vendor robot control.
-    m_trajectory_handle->setCommand(*goal);
+    trajectory_handle_->setCommand(*goal);
 
     // Time keeping
-    m_action_duration.current = ros::Duration(0.0);
-    m_action_duration.target =
+    action_duration_.current = ros::Duration(0.0);
+    action_duration_.target =
       goal->trajectory.points.back().time_from_start + goal->goal_time_tolerance;
 
-    m_done = false;
-    while (!m_done)
+    done_ = false;
+    while (!done_)
     {
       ros::Duration(0.01).sleep();
     }
@@ -214,13 +214,13 @@ namespace trajectory_controllers {
   void PassThroughController<TrajectoryInterface>::preemptCB()
   {
     // Notify the vendor robot control.
-    m_trajectory_handle->cancelCommand();
+    trajectory_handle_->cancelCommand();
 
     typename Base::FollowTrajectoryResult result;
     result.error_string = "preempted";
-    m_action_server->setPreempted(result);
+    action_server_->setPreempted(result);
 
-    m_done = true;
+    done_ = true;
   }
 
   template <class TrajectoryInterface>
@@ -228,12 +228,12 @@ namespace trajectory_controllers {
     const typename Base::TrajectoryFeedback& feedback)
   {
     // Abort if any of the joints exceeds its path tolerance
-    if (!withinTolerances(feedback.error, m_path_tolerances))
+    if (!withinTolerances(feedback.error, path_tolerances_))
     {
       typename Base::FollowTrajectoryResult result;
       result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
-      m_action_server->setAborted(result);
-      m_done = true;
+      action_server_->setAborted(result);
+      done_ = true;
       return;
     }
   }
@@ -256,12 +256,12 @@ namespace trajectory_controllers {
       // TODO: Velocity and acceleration limits will be affected by speed scaling.
       // We need a policy here.
       // > 0.0 means initialized
-      if ((m_path_tolerances[i].position > 0.0 &&
-           std::abs(error.positions[i]) > m_path_tolerances[i].position) ||
-          (m_path_tolerances[i].velocity > 0.0 &&
-           std::abs(error.velocities[i]) > m_path_tolerances[i].velocity) ||
-          (m_path_tolerances[i].acceleration > 0.0 &&
-           std::abs(error.accelerations[i]) > m_path_tolerances[i].acceleration))
+      if ((path_tolerances_[i].position > 0.0 &&
+           std::abs(error.positions[i]) > path_tolerances_[i].position) ||
+          (path_tolerances_[i].velocity > 0.0 &&
+           std::abs(error.velocities[i]) > path_tolerances_[i].velocity) ||
+          (path_tolerances_[i].acceleration > 0.0 &&
+           std::abs(error.accelerations[i]) > path_tolerances_[i].acceleration))
       {
         return false;
       }
@@ -309,13 +309,13 @@ namespace trajectory_controllers {
     const typename Base::GoalConstPtr& goal)
   {
     // If tolerances are given, they must be given for all joints.
-    if ((!goal->path_tolerance.empty() && goal->path_tolerance.size() != m_joint_names.size()) ||
-        (!goal->goal_tolerance.empty() && goal->goal_tolerance.size() != m_joint_names.size()))
+    if ((!goal->path_tolerance.empty() && goal->path_tolerance.size() != joint_names_.size()) ||
+        (!goal->goal_tolerance.empty() && goal->goal_tolerance.size() != joint_names_.size()))
     {
       ROS_ERROR("Given tolerances must match the number of joints");
       typename Base::FollowTrajectoryResult result;
       result.error_code = Base::FollowTrajectoryResult::INVALID_GOAL;
-      m_action_server->setAborted(result);
+      action_server_->setAborted(result);
       return false;
     }
     return true;
@@ -333,14 +333,14 @@ namespace trajectory_controllers {
   void PassThroughController<TrajectoryInterface>::timesUp()
   {
     // Use most recent feedback
-    typename Base::TrajectoryPoint p = m_trajectory_handle->getFeedback().error;
+    typename Base::TrajectoryPoint p = trajectory_handle_->getFeedback().error;
     typename Base::FollowTrajectoryResult result;
 
     // Abort if any of the joints exceeds its goal tolerance
-    if (!withinTolerances(p, m_goal_tolerances))
+    if (!withinTolerances(p, goal_tolerances_))
     {
       result.error_code = Base::FollowTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
-      m_action_server->setAborted(result);
+      action_server_->setAborted(result);
 
       // TODO: Preempt vendor control?
       // When the time is up on the ROS side, the vendor trajectory controller
@@ -352,10 +352,10 @@ namespace trajectory_controllers {
     else // Succeed
     {
       result.error_code = Base::FollowTrajectoryResult::SUCCESSFUL;
-      m_action_server->setSucceeded(result);
+      action_server_->setSucceeded(result);
     }
 
-    m_done = true;
+    done_ = true;
   }
 
 

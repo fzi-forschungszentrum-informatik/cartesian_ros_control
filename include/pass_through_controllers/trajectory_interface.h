@@ -97,8 +97,8 @@ class TrajectoryHandle
      * @param feedback The feedback buffer for read/write operations
      */
     TrajectoryHandle(TrajectoryType* cmd, FeedbackType* feedback)
-      : m_cmd(cmd)
-      , m_feedback(feedback)
+      : cmd_(cmd)
+      , feedback_(feedback)
     {
       if (!cmd || !feedback)
       {
@@ -126,10 +126,10 @@ class TrajectoryHandle
                      FeedbackType* feedback,
                      std::function<void(const TrajectoryType&)> on_new_cmd,
                      std::function<void()> on_cancel)
-      : m_cmd(cmd)
-      , m_feedback(feedback)
-      , m_cmd_callback(on_new_cmd)
-      , m_cancel_callback(on_cancel)
+      : cmd_(cmd)
+      , feedback_(feedback)
+      , cmd_callback_(on_new_cmd)
+      , cancel_callback_(on_cancel)
     {
       if (!cmd || !feedback)
       {
@@ -150,12 +150,12 @@ class TrajectoryHandle
      */
     void setCommand(TrajectoryType command)
     {
-      assert(m_cmd);
-      *m_cmd = command;
+      assert(cmd_);
+      *cmd_ = command;
 
-      if (m_cmd_callback)
+      if (cmd_callback_)
       {
-        m_cmd_callback(*m_cmd);
+        cmd_callback_(*cmd_);
       }
     }
 
@@ -167,16 +167,16 @@ class TrajectoryHandle
      *
      * @return The content of the trajectory command buffer
      */
-    TrajectoryType getCommand() const {assert(m_cmd); return *m_cmd;}
+    TrajectoryType getCommand() const {assert(cmd_); return *cmd_;}
 
     /**
      * @brief Cancel an active command
      */
     void cancelCommand()
     {
-      if (m_cancel_callback)
+      if (cancel_callback_)
       {
-        m_cancel_callback();
+        cancel_callback_();
       }
     }
 
@@ -190,8 +190,8 @@ class TrajectoryHandle
      */
     void setFeedback(FeedbackType feedback)
     {
-      assert(m_feedback);
-      *m_feedback = feedback;
+      assert(feedback_);
+      *feedback_ = feedback;
     }
 
     /**
@@ -202,7 +202,7 @@ class TrajectoryHandle
      *
      * @return The most recent feedback on the trajectory execution
      */
-    FeedbackType getFeedback() const {assert(m_feedback); return *m_feedback;}
+    FeedbackType getFeedback() const {assert(feedback_); return *feedback_;}
 
     /**
      * @brief Get the name of this trajectory handle
@@ -215,10 +215,10 @@ class TrajectoryHandle
     static std::string getName() noexcept;
 
   private:
-    TrajectoryType* m_cmd;
-    FeedbackType* m_feedback;
-    std::function<void(const TrajectoryType&)> m_cmd_callback;
-    std::function<void()> m_cancel_callback;;
+    TrajectoryType* cmd_;
+    FeedbackType* feedback_;
+    std::function<void(const TrajectoryType&)> cmd_callback_;
+    std::function<void()> cancel_callback_;;
 };
 
 
@@ -268,7 +268,7 @@ class TrajectoryInterface
      */
     void setResources(std::vector<std::string> resources)
     {
-      m_joint_names = resources;
+      joint_names_ = resources;
     }
 
     /**
@@ -281,7 +281,7 @@ class TrajectoryInterface
      */
     void claim(std::string /*resource*/) override
     {
-      for (const std::string& joint : m_joint_names)
+      for (const std::string& joint : joint_names_)
       {
         hardware_interface::HardwareResourceManager<
           TrajectoryHandle<TrajectoryType, FeedbackType>,
@@ -290,7 +290,7 @@ class TrajectoryInterface
     }
 
   private:
-    std::vector<std::string> m_joint_names;
+    std::vector<std::string> joint_names_;
 };
 
 /**

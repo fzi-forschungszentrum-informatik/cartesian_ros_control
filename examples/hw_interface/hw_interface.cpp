@@ -27,7 +27,7 @@ HWInterface::HWInterface()
 {
   // Get names of controllable joints from the parameter server
   ros::NodeHandle nh;
-  if (!nh.getParam("joints", m_joint_names))
+  if (!nh.getParam("joints", joint_names_))
   {
     ROS_ERROR_STREAM("Failed to load " << nh.getNamespace() + "/joints"
                                        << " from parameter server");
@@ -35,105 +35,105 @@ HWInterface::HWInterface()
   }
 
   // Current UR driver convention
-  m_ref_frame_id = "base";
-  m_frame_id = "tool0_controller";
+  ref_frame_id_ = "base";
+  frame_id_ = "tool0_controller";
 
   // Connect dynamic reconfigure and overwrite the default values with values
   // on the parameter server. This is done automatically if parameters with
   // the according names exist.
-  m_callback_type = std::bind(&HWInterface::dynamicReconfigureCallback,
+  callback_type_ = std::bind(&HWInterface::dynamicReconfigureCallback,
                               this,
                               std::placeholders::_1,
                               std::placeholders::_2);
 
-  m_reconfig_server =
+  reconfig_server_ =
     std::make_shared<dynamic_reconfigure::Server<SpeedScalingConfig> >(nh);
-  m_reconfig_server->setCallback(m_callback_type);
+  reconfig_server_->setCallback(callback_type_);
 
-  const int nr_joints = m_joint_names.size();
-  m_cmd.resize(nr_joints);
-  m_pos.resize(nr_joints);
-  m_vel.resize(nr_joints);
-  m_eff.resize(nr_joints);
+  const int nr_joints = joint_names_.size();
+  cmd_.resize(nr_joints);
+  pos_.resize(nr_joints);
+  vel_.resize(nr_joints);
+  eff_.resize(nr_joints);
 
   // Initialize and register joint state handles
   for (int i = 0; i < nr_joints; ++i)
   {
-    m_joint_state_handles.push_back(
-      hardware_interface::JointStateHandle(m_joint_names[i], &m_pos[i], &m_vel[i], &m_eff[i]));
+    joint_state_handles_.push_back(
+      hardware_interface::JointStateHandle(joint_names_[i], &pos_[i], &vel_[i], &eff_[i]));
 
-    m_jnt_state_interface.registerHandle(m_joint_state_handles[i]);
+    jnt_state_interface_.registerHandle(joint_state_handles_[i]);
   }
-  registerInterface(&m_jnt_state_interface);
+  registerInterface(&jnt_state_interface_);
 
   // Initialize and register a Cartesian state handle
   cartesian_ros_control::CartesianStateHandle cartesian_state_handle =
-    cartesian_ros_control::CartesianStateHandle(m_ref_frame_id,
-                                                m_frame_id,
-                                                &m_cartesian_pose,
-                                                &m_cartesian_twist,
-                                                &m_cartesian_accel,
-                                                &m_cartesian_jerk);
-  m_cart_state_interface.registerHandle(cartesian_state_handle);
-  registerInterface(&m_cart_state_interface);
+    cartesian_ros_control::CartesianStateHandle(ref_frame_id_,
+                                                frame_id_,
+                                                &cartesian_pose_,
+                                                &cartesian_twist_,
+                                                &cartesian_accel_,
+                                                &cartesian_jerk_);
+  cart_state_interface_.registerHandle(cartesian_state_handle);
+  registerInterface(&cart_state_interface_);
 
   // Initialize and register a Cartesian pose command handle
   cartesian_ros_control::PoseCommandHandle pose_cmd_handle =
-    cartesian_ros_control::PoseCommandHandle(cartesian_state_handle, &m_pose_cmd);
-  m_pose_cmd_interface.registerHandle(pose_cmd_handle);
-  registerInterface(&m_pose_cmd_interface);
+    cartesian_ros_control::PoseCommandHandle(cartesian_state_handle, &pose_cmd_);
+  pose_cmd_interface_.registerHandle(pose_cmd_handle);
+  registerInterface(&pose_cmd_interface_);
 
   // Initialize and register joint position command handles.
   for (int i = 0; i < nr_joints; ++i)
   {
-    m_joint_handles.push_back(hardware_interface::JointHandle(
-      m_jnt_state_interface.getHandle(m_joint_names[i]), &m_cmd[i]));
+    joint_handles_.push_back(hardware_interface::JointHandle(
+      jnt_state_interface_.getHandle(joint_names_[i]), &cmd_[i]));
 
-    m_jnt_pos_interface.registerHandle(m_joint_handles[i]);
+    jnt_pos_interface_.registerHandle(joint_handles_[i]);
   }
-  registerInterface(&m_jnt_pos_interface);
+  registerInterface(&jnt_pos_interface_);
 
   // Initialize and register trajectory command handles for PassThroughControllers
   hardware_interface::JointTrajectoryHandle joint_trajectory_handle =
     hardware_interface::JointTrajectoryHandle(
-      &m_jnt_traj_cmd,
-      &m_jnt_traj_feedback,
+      &jnt_traj_cmd_,
+      &jnt_traj_feedback_,
       std::bind(&HWInterface::startJointInterpolation, this, std::placeholders::_1),
       std::bind(&HWInterface::cancelJointInterpolation, this));
 
-  m_jnt_traj_interface.registerHandle(joint_trajectory_handle);
-  registerInterface(&m_jnt_traj_interface);
+  jnt_traj_interface_.registerHandle(joint_trajectory_handle);
+  registerInterface(&jnt_traj_interface_);
 
   // Initialize and register Cartesian trajectory command handles for PassThroughControllers
   hardware_interface::CartesianTrajectoryHandle cartesian_trajectory_handle =
     hardware_interface::CartesianTrajectoryHandle(
-      &m_cart_traj_cmd,
-      &m_cart_traj_feedback,
+      &cart_traj_cmd_,
+      &cart_traj_feedback_,
       std::bind(&HWInterface::startCartesianInterpolation, this, std::placeholders::_1),
       std::bind(&HWInterface::cancelCartesianInterpolation, this));
 
-  m_cart_traj_interface.registerHandle(cartesian_trajectory_handle);
-  registerInterface(&m_cart_traj_interface);
+  cart_traj_interface_.registerHandle(cartesian_trajectory_handle);
+  registerInterface(&cart_traj_interface_);
 
   // Initialize and register speed scaling.
   // Note: The handle's name is a convention.
   // ROS-controllers will use this name when calling getHandle().
-  m_speedsc_interface.registerHandle(
-      hardware_interface::SpeedScalingHandle("speed_scaling_factor", &m_speed_scaling));
-  registerInterface(&m_speedsc_interface);
+  speedsc_interface_.registerHandle(
+      hardware_interface::SpeedScalingHandle("speed_scaling_factor", &speed_scaling_));
+  registerInterface(&speedsc_interface_);
 
 
   // Robot dummy communication
-  m_joint_based_communication =
+  joint_based_communication_ =
     std::make_unique<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >(
       "/robot_dummy/vendor_joint_controller/follow_joint_trajectory", true);
 
-  m_cartesian_based_communication =
+  cartesian_based_communication_ =
     std::make_unique<actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction> >(
       "/robot_dummy/vendor_cartesian_controller/follow_cartesian_trajectory", true);
 
-  m_joint_based_communication->waitForServer();
-  m_cartesian_based_communication->waitForServer();
+  joint_based_communication_->waitForServer();
+  cartesian_based_communication_->waitForServer();
 
   ROS_INFO("Example HW interface is ready");
 }
@@ -153,7 +153,7 @@ void HWInterface::write(const ros::Time& time, const ros::Duration& period)
 
 void HWInterface::startJointInterpolation(const hardware_interface::JointTrajectory& trajectory)
 {
-  m_joint_based_communication->sendGoal(
+  joint_based_communication_->sendGoal(
     trajectory,
     0, // no done callback
     0, // no active callback
@@ -163,7 +163,7 @@ void HWInterface::startJointInterpolation(const hardware_interface::JointTraject
 
 void HWInterface::startCartesianInterpolation(const hardware_interface::CartesianTrajectory& trajectory)
 {
-  m_cartesian_based_communication->sendGoal(
+  cartesian_based_communication_->sendGoal(
     trajectory,
     0, // no done callback
     0, // no active callback
@@ -173,29 +173,29 @@ void HWInterface::startCartesianInterpolation(const hardware_interface::Cartesia
 
 void HWInterface::cancelJointInterpolation()
 {
-  m_joint_based_communication->cancelGoal();
+  joint_based_communication_->cancelGoal();
 }
 
 void HWInterface::cancelCartesianInterpolation()
 {
-  m_cartesian_based_communication->cancelGoal();
+  cartesian_based_communication_->cancelGoal();
 }
 
 void HWInterface::dynamicReconfigureCallback(SpeedScalingConfig& config, uint32_t level)
 {
   // Let's hope for "thread safety" with fundamental types.
-  m_speed_scaling = config.speed_scaling;
+  speed_scaling_ = config.speed_scaling;
 }
 
 void HWInterface::handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)
 {
-  m_jnt_traj_interface.getHandle("joint_trajectory_handle").setFeedback(*feedback);
+  jnt_traj_interface_.getHandle("joint_trajectory_handle").setFeedback(*feedback);
 }
 
 void HWInterface::handleCartesianFeedback(
   const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback)
 {
-  m_cart_traj_interface.getHandle("cartesian_trajectory_handle").setFeedback(*feedback);
+  cart_traj_interface_.getHandle("cartesian_trajectory_handle").setFeedback(*feedback);
 }
 
 } // namespace examples

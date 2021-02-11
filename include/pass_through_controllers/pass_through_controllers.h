@@ -215,15 +215,15 @@ private:
    */
   void timesUp();
 
-  bool m_done;
-  ActionDuration m_action_duration;
-  std::unique_ptr<hardware_interface::SpeedScalingHandle> m_speed_scaling;
-  std::vector<std::string> m_joint_names;
-  typename Base::Tolerance m_path_tolerances;
-  typename Base::Tolerance m_goal_tolerances;
-  std::unique_ptr<typename Base::TrajectoryHandle> m_trajectory_handle;
+  bool done_;
+  ActionDuration action_duration_;
+  std::unique_ptr<hardware_interface::SpeedScalingHandle> speed_scaling_;
+  std::vector<std::string> joint_names_;
+  typename Base::Tolerance path_tolerances_;
+  typename Base::Tolerance goal_tolerances_;
+  std::unique_ptr<typename Base::TrajectoryHandle> trajectory_handle_;
   std::unique_ptr<actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction> >
-    m_action_server;
+    action_server_;
 };
 
 

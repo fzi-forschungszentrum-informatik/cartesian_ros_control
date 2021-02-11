@@ -97,32 +97,32 @@ private:
   void cancelCartesianInterpolation();
 
   //! Actuated joints in order from base to tip
-  std::vector<std::string> m_joint_names;
+  std::vector<std::string> joint_names_;
 
   // Interfaces
-  cartesian_ros_control::CartesianStateInterface m_cart_state_interface;
-  cartesian_ros_control::PoseCommandInterface m_pose_cmd_interface;
-  hardware_interface::JointStateInterface m_jnt_state_interface;
-  hardware_interface::PositionJointInterface m_jnt_pos_interface;
-  hardware_interface::JointTrajectoryInterface m_jnt_traj_interface;
-  hardware_interface::CartesianTrajectoryInterface m_cart_traj_interface;
-  hardware_interface::SpeedScalingInterface m_speedsc_interface;
+  cartesian_ros_control::CartesianStateInterface cart_state_interface_;
+  cartesian_ros_control::PoseCommandInterface pose_cmd_interface_;
+  hardware_interface::JointStateInterface jnt_state_interface_;
+  hardware_interface::PositionJointInterface jnt_pos_interface_;
+  hardware_interface::JointTrajectoryInterface jnt_traj_interface_;
+  hardware_interface::CartesianTrajectoryInterface cart_traj_interface_;
+  hardware_interface::SpeedScalingInterface speedsc_interface_;
 
   // Buffers
-  std::vector<double> m_cmd;
-  std::vector<double> m_pos;
-  std::vector<double> m_vel;
-  std::vector<double> m_eff;
-  hardware_interface::JointTrajectory m_jnt_traj_cmd;
-  hardware_interface::JointTrajectoryFeedback m_jnt_traj_feedback;
-  hardware_interface::CartesianTrajectory m_cart_traj_cmd;
-  hardware_interface::CartesianTrajectoryFeedback m_cart_traj_feedback;
-  double m_speed_scaling;
-  geometry_msgs::Pose m_pose_cmd;
+  std::vector<double> cmd_;
+  std::vector<double> pos_;
+  std::vector<double> vel_;
+  std::vector<double> eff_;
+  hardware_interface::JointTrajectory jnt_traj_cmd_;
+  hardware_interface::JointTrajectoryFeedback jnt_traj_feedback_;
+  hardware_interface::CartesianTrajectory cart_traj_cmd_;
+  hardware_interface::CartesianTrajectoryFeedback cart_traj_feedback_;
+  double speed_scaling_;
+  geometry_msgs::Pose pose_cmd_;
 
   // Configuration
-  std::string m_ref_frame_id;
-  std::string m_frame_id;
+  std::string ref_frame_id_;
+  std::string frame_id_;
 
   // Dynamic reconfigure
   using SpeedScalingConfig = pass_through_controllers::SpeedScalingConfig;
@@ -141,28 +141,28 @@ private:
    */
   void dynamicReconfigureCallback(SpeedScalingConfig& config, uint32_t level);
 
-  std::shared_ptr<dynamic_reconfigure::Server<SpeedScalingConfig>> m_reconfig_server;
-  dynamic_reconfigure::Server<SpeedScalingConfig>::CallbackType m_callback_type;
+  std::shared_ptr<dynamic_reconfigure::Server<SpeedScalingConfig>> reconfig_server_;
+  dynamic_reconfigure::Server<SpeedScalingConfig>::CallbackType callback_type_;
 
   // States
-  geometry_msgs::Pose m_cartesian_pose;
-  geometry_msgs::Twist m_cartesian_twist;
-  geometry_msgs::Accel m_cartesian_accel;
-  geometry_msgs::Accel m_cartesian_jerk;
+  geometry_msgs::Pose cartesian_pose_;
+  geometry_msgs::Twist cartesian_twist_;
+  geometry_msgs::Accel cartesian_accel_;
+  geometry_msgs::Accel cartesian_jerk_;
 
 
   // Handles
-  std::vector<hardware_interface::JointHandle> m_joint_handles;
-  std::vector<hardware_interface::JointStateHandle> m_joint_state_handles;
+  std::vector<hardware_interface::JointHandle> joint_handles_;
+  std::vector<hardware_interface::JointStateHandle> joint_state_handles_;
 
   // Robot connection and communication
   std::unique_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >
-    m_joint_based_communication;
+    joint_based_communication_;
   void handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback);
 
   std::unique_ptr<
     actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction> >
-    m_cartesian_based_communication;
+    cartesian_based_communication_;
   void handleCartesianFeedback(
     const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback);
 };
