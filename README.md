@@ -29,10 +29,10 @@ Two new interfaces ```CartesianTrajectoryInterface``` and ```JointTrajectoryInte
 In the spirit of ROS control, the implementation is robot-agnostic and shall support applications on a wide range of robots. The table below shows what features will be available with this enhancement.
 
 | Feature | Robots with new interfaces | Robots with current ROS control |
-| -------- | -------- | -------- | ---|
+| -------- | -------- | --- |
 | Cartesian trajectory control | &check; | &check; |
 | Cartesian trajectory forwarding | &check; | |
-| Joint trajectory forwarding | &check;  |
+| Joint trajectory forwarding | &check;  | |
 | Speed-scale trajectories | &check; |  |
 
 
