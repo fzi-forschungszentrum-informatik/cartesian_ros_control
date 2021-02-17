@@ -341,12 +341,7 @@ namespace trajectory_controllers {
       result.error_code = Base::FollowTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
       action_server_->setAborted(result);
 
-      // TODO: Preempt vendor control?
-      // When the time is up on the ROS side, the vendor trajectory controller
-      // might still be running.
-      // What's a suitable policy for this in ROS?
-
-      // TODO: We probably should abort in this case.
+      trajectory_handle_->cancelCommand();
     }
     else // Succeed
     {
