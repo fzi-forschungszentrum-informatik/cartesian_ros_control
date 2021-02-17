@@ -2,6 +2,10 @@
 
 This package brings mechanisms for Cartesian control to the ROS-control framework.
 
+## Overview
+
+New functionality (colored):
+
 ![Colored: New contributions from this package](./cartesian_ros_control/doc/cartesian_ros_control.png)
 
 
