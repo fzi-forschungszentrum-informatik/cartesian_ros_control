@@ -254,8 +254,7 @@ namespace trajectory_controllers {
     for (size_t i = 0; i < tolerances.size(); ++i)
     {
       // TODO: Velocity and acceleration limits will be affected by speed scaling.
-      // We need a policy here.
-      // > 0.0 means initialized
+      // Address this once we know more edge cases during beta testing.
       if ((path_tolerances_[i].position > 0.0 &&
            std::abs(error.positions[i]) > path_tolerances_[i].position) ||
           (path_tolerances_[i].velocity > 0.0 &&
