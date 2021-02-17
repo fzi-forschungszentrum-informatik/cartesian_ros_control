@@ -92,7 +92,30 @@ struct CartesianBase
 
 
 /**
- * @brief TODO
+ * @brief A ROS controller for forwarding trajectories to a robot for interpolation
+ *
+ * Instead of interpolating between the waypoints itself, this driver passes
+ * the complete trajectories down to the according HW interfaces, assuming that
+ * the driver's implementation makes use of whichever components are suitable
+ * for that specific robot.
+ *
+ * This controller implements a simple action server that provides the common
+ * /follow_joint_trajectory or /follow_cartesian_trajectory action interface.
+ *
+ * Users specify this controller in their .yaml files with:
+ *
+ * \code{.yaml}
+ * # Your joint-based passthrough controller
+ * forward_joint_trajectories:
+ *     type: "joint_trajectory_controllers/PassThroughController"
+ *     ...
+ *
+ *
+ * # Your Cartesian passthrough controller
+ * forward_cartesian_trajectories:
+ *     type: "cartesian_trajectory_controllers/PassThroughController"
+ *     ...
+ * \endcode
  *
  * @tparam TrajectoryInterface The type of trajectory interface used for this
  * controller. Either hardware_interface::JointTrajectoryInterface or
