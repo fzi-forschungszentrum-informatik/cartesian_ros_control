@@ -2,6 +2,9 @@
 
 This package brings mechanisms for Cartesian control to the ROS-control framework.
 
+![Colored: New contributions from this package](./cartesian_ros_control/doc/cartesian_ros_control.png)
+
+
 ## Rationale
 
 As opposed to joint-based control, Cartesian control is often more intuitive for programmers to specify how a tool (robot end-effector) should move in their application.
