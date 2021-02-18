@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright 2020 FZI Research Center for Information Technology
+// Copyright 2021 FZI Research Center for Information Technology
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,56 +28,48 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
 
-//----------------------------------------------------------------------
-/*!\file
+//-----------------------------------------------------------------------------
+/*!\file    cartesian_trajectory.cpp
  *
- * \author  Felix Exner mauch@fzi.de
- * \date    2020-07-02
+ * \author  Stefan Scherzinger <scherzin@fzi.de>
+ * \date    2021/01/21
  *
  */
-//----------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-#pragma once
-
-#include <controller_interface/controller.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <realtime_tools/realtime_buffer.h>
-
-#include <cartesian_interface/cartesian_command_interface.h>
+#include <cartesian_trajectory_interpolation/cartesian_trajectory.h>
+#include <trajectory_interface/trajectory_interface.h>
 
 namespace cartesian_ros_control
 {
 
-/**
- * @brief A Cartesian ROS-controller for commanding target twists to a robot
- *
- * This controller makes use of a TwistCommandInterface to set a user specified
- * twist message as reference for robot control.
- * The according hardware_interface::RobotHW can send these commands
- * directly to the robot driver in its write() function.
- */
-class TwistController : public controller_interface::Controller<TwistCommandInterface>
-{
-public:
-  TwistController() = default;
-  virtual ~TwistController() = default;
-
-  virtual bool init(TwistCommandInterface* hw, ros::NodeHandle& n) override;
-
-  virtual void starting(const ros::Time& time) override;
-
-  virtual void update(const ros::Time& /*time*/, const ros::Duration& /*period*/) override
+  void CartesianTrajectory::sample(const CartesianTrajectorySegment::Time& time, CartesianState& state)
   {
-    handle_.setCommand(*command_buffer_.readFromRT());
+    trajectory_interface::sample(trajectory_data_, time, state);
   }
 
-  TwistCommandHandle handle_;
-  realtime_tools::RealtimeBuffer<geometry_msgs::Twist> command_buffer_;
+  CartesianTrajectory::CartesianTrajectory(const cartesian_control_msgs::CartesianTrajectory& ros_trajectory)
+  {
+    if (!init(ros_trajectory))
+    {
+      throw std::invalid_argument("Trajectory not valid");
+    };
+  }
 
-private:
-  ros::Subscriber twist_sub_;
-  void twistCallback(const geometry_msgs::TwistConstPtr& msg);
-  double gain_ = { 0.1 };
-};
+  bool CartesianTrajectory::init(const cartesian_control_msgs::CartesianTrajectory& ros_trajectory)
+  {
+    trajectory_data_.clear();
 
-}  // namespace cartesian_ros_control
+    // Loop through the waypoints and build trajectory segments from each two
+    // neighboring pairs.
+    for (auto i = ros_trajectory.points.begin(); std::next(i) < ros_trajectory.points.end(); ++i)
+    {
+      CartesianTrajectorySegment s(
+          i->time_from_start.toSec(), CartesianState(*i),
+          std::next(i)->time_from_start.toSec(), CartesianState(*std::next(i))
+          );
+      trajectory_data_.push_back(s);
+    }
+    return true;
+  }
+}

@@ -1,0 +1,22 @@
+<launch>
+
+        <!-- A dummy robot to mimic vendor control -->
+        <include file="$(find pass_through_controllers)/examples/robot_dummy/robot_dummy.launch">
+                <arg name="debug" default="false"/>
+        </include>
+
+        <!-- An example hw interface to show the usage of pass-through controllers -->
+        <include file="$(find pass_through_controllers)/examples/hw_interface/hw_interface.launch">
+                <arg name="debug" default="false"/>
+        </include>
+
+        <!-- Robot_description -->
+        <param name="robot_description"
+        command="$(find xacro)/xacro --inorder '$(find pass_through_controllers)/examples/robot_dummy/robot_dummy.urdf.xacro'" />
+
+        <!-- Visualization -->
+        <arg name="my_rviz" value="-d $(find pass_through_controllers)/examples//etc/demo.rviz" />
+        <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="$(arg my_rviz)" output="screen" >
+        </node>
+
+</launch>

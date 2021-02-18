@@ -1,0 +1,44 @@
+<launch>
+        <!-- Configuration -->
+        <arg name="debug" default="false"/>
+        <arg if="$(arg debug)" name="launch-prefix" value="screen -d -m gdb -command=$(env HOME)/.ros/my_debug_log --ex run --args"/>
+        <arg unless="$(arg debug)" name="launch-prefix" value=""/>
+
+
+        <group ns="robot_dummy">
+
+                <remap from="robot_description" to="/robot_description"/>
+
+                <!-- Hardware configuration -->
+                <rosparam file="$(find pass_through_controllers)/examples/robot_dummy/config.yaml" command="load"></rosparam>
+
+                <!-- Hardware control node -->
+                <node name="control_node" pkg="ros_control_boilerplate" type="sim_hw_main"
+                output="screen" launch-prefix="$(arg launch-prefix)"/>
+
+                <!-- Robot state publisher -->
+                <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+                        <param name="publish_frequency" type="double" value="50.0" />
+                        <param name="tf_prefix" type="string" value="" />
+                </node>
+
+                <!-- Joint state publisher -->
+                <node name="joint_state_controller_spawner" pkg="controller_manager" type="spawner" args="joint_state_controller" respawn="false" output="screen"/>
+
+                <!-- Available controllers -->
+                <rosparam file="$(find pass_through_controllers)/examples/robot_dummy/controllers.yaml" command="load"></rosparam>
+
+                <!-- Spawn controllers -->
+                <node name="running_controller_spawner" pkg="controller_manager" type="spawner"
+                        args="
+                        vendor_cartesian_controller
+                        "
+                />
+                <node name="stopped_controller_spawner" pkg="controller_manager" type="spawner"
+                        args="--stopped
+                        vendor_joint_controller
+                        "
+                />
+        </group>
+
+</launch>

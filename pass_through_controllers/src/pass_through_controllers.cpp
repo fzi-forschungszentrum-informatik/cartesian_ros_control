@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright 2020 FZI Research Center for Information Technology
+// Copyright 2021 FZI Research Center for Information Technology
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,56 +28,38 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
 
-//----------------------------------------------------------------------
-/*!\file
+
+//-----------------------------------------------------------------------------
+/*!\file    pass_through_controllers.cpp
  *
- * \author  Felix Exner mauch@fzi.de
- * \date    2020-07-02
+ * \author  Stefan Scherzinger <scherzin@fzi.de>
+ * \date    2020/10/13
  *
  */
-//----------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-#pragma once
+// Pluginlib
+#include <pluginlib/class_list_macros.h>
 
-#include <controller_interface/controller.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <realtime_tools/realtime_buffer.h>
+// Project
+#include <pass_through_controllers/pass_through_controllers.h>
 
-#include <cartesian_interface/cartesian_command_interface.h>
+// Exports
 
-namespace cartesian_ros_control
-{
+namespace joint_trajectory_controllers {
 
-/**
- * @brief A Cartesian ROS-controller for commanding target twists to a robot
- *
- * This controller makes use of a TwistCommandInterface to set a user specified
- * twist message as reference for robot control.
- * The according hardware_interface::RobotHW can send these commands
- * directly to the robot driver in its write() function.
- */
-class TwistController : public controller_interface::Controller<TwistCommandInterface>
-{
-public:
-  TwistController() = default;
-  virtual ~TwistController() = default;
+using PassThroughController =
+  trajectory_controllers::PassThroughController<hardware_interface::JointTrajectoryInterface>;
+}
 
-  virtual bool init(TwistCommandInterface* hw, ros::NodeHandle& n) override;
+namespace cartesian_trajectory_controllers {
 
-  virtual void starting(const ros::Time& time) override;
+using PassThroughController =
+  trajectory_controllers::PassThroughController<hardware_interface::CartesianTrajectoryInterface>;
+}
 
-  virtual void update(const ros::Time& /*time*/, const ros::Duration& /*period*/) override
-  {
-    handle_.setCommand(*command_buffer_.readFromRT());
-  }
+PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController,
+                       controller_interface::ControllerBase)
 
-  TwistCommandHandle handle_;
-  realtime_tools::RealtimeBuffer<geometry_msgs::Twist> command_buffer_;
-
-private:
-  ros::Subscriber twist_sub_;
-  void twistCallback(const geometry_msgs::TwistConstPtr& msg);
-  double gain_ = { 0.1 };
-};
-
-}  // namespace cartesian_ros_control
+PLUGINLIB_EXPORT_CLASS(cartesian_trajectory_controllers::PassThroughController,
+                       controller_interface::ControllerBase)

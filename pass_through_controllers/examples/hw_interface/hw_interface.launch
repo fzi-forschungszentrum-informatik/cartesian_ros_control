@@ -1,0 +1,37 @@
+<launch>
+        <!-- Configuration -->
+        <arg name="debug" default="false"/>
+        <arg if="$(arg debug)" name="launch-prefix" value="screen -d -m gdb -command=$(env HOME)/.ros/my_debug_log --ex run --args"/>
+        <arg unless="$(arg debug)" name="launch-prefix" value=""/>
+
+        <group ns="hw_interface">
+
+                <remap from="robot_description" to="/robot_description"/>
+
+                <!-- Hardware configuration -->
+                <rosparam file="$(find pass_through_controllers)/examples/hw_interface/config.yaml" command="load">
+                </rosparam>
+
+                <!-- Hardware control node -->
+                <node name="control_node" pkg="pass_through_controllers" type="hw_interface_example"
+                output="screen" launch-prefix="$(arg launch-prefix)"/>
+
+                <!-- Available controllers -->
+                <rosparam file="$(find pass_through_controllers)/examples/hw_interface/controllers.yaml" command="load"></rosparam>
+
+                <!-- Spawn controllers -->
+                <node name="running_controller_spawner" pkg="controller_manager" type="spawner"
+                        args="
+                        forward_cartesian_trajectories
+                        "
+                />
+                <node name="stopped_controller_spawner" pkg="controller_manager" type="spawner"
+                        args="--stopped
+                        forward_joint_trajectories
+                        conflicting_joint_controller
+                        cartesian_trajectory_controller
+                        "
+                />
+        </group>
+
+</launch>

@@ -28,56 +28,57 @@
 // POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////
 
-//----------------------------------------------------------------------
-/*!\file
+//-----------------------------------------------------------------------------
+/*!\file    cartesian_trajectory_controller.cpp
  *
- * \author  Felix Exner mauch@fzi.de
- * \date    2020-07-02
+ * \author  Stefan Scherzinger <scherzin@fzi.de>
+ * \date    2021/01/24
  *
  */
-//----------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-#pragma once
-
-#include <controller_interface/controller.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <realtime_tools/realtime_buffer.h>
-
+#include <pluginlib/class_list_macros.h>
+#include <cartesian_trajectory_controller/cartesian_trajectory_controller.h>
 #include <cartesian_interface/cartesian_command_interface.h>
+#include <hardware_interface/joint_command_interface.h>
 
-namespace cartesian_ros_control
+namespace pose_controllers
 {
+  using CartesianTrajectoryController =
+    cartesian_trajectory_controller::CartesianTrajectoryController<cartesian_ros_control::PoseCommandInterface>;
+}
 
-/**
- * @brief A Cartesian ROS-controller for commanding target twists to a robot
- *
- * This controller makes use of a TwistCommandInterface to set a user specified
- * twist message as reference for robot control.
- * The according hardware_interface::RobotHW can send these commands
- * directly to the robot driver in its write() function.
- */
-class TwistController : public controller_interface::Controller<TwistCommandInterface>
+namespace twist_controllers
 {
-public:
-  TwistController() = default;
-  virtual ~TwistController() = default;
+  using CartesianTrajectoryController =
+    cartesian_trajectory_controller::CartesianTrajectoryController<cartesian_ros_control::TwistCommandInterface>;
+}
 
-  virtual bool init(TwistCommandInterface* hw, ros::NodeHandle& n) override;
+namespace position_controllers
+{
+  using CartesianTrajectoryController =
+    cartesian_trajectory_controller::CartesianTrajectoryController<hardware_interface::PositionJointInterface>;
+}
 
-  virtual void starting(const ros::Time& time) override;
+namespace velocity_controllers
+{
+  using CartesianTrajectoryController =
+    cartesian_trajectory_controller::CartesianTrajectoryController<hardware_interface::VelocityJointInterface>;
+}
 
-  virtual void update(const ros::Time& /*time*/, const ros::Duration& /*period*/) override
-  {
-    handle_.setCommand(*command_buffer_.readFromRT());
-  }
 
-  TwistCommandHandle handle_;
-  realtime_tools::RealtimeBuffer<geometry_msgs::Twist> command_buffer_;
 
-private:
-  ros::Subscriber twist_sub_;
-  void twistCallback(const geometry_msgs::TwistConstPtr& msg);
-  double gain_ = { 0.1 };
-};
+PLUGINLIB_EXPORT_CLASS(pose_controllers::CartesianTrajectoryController,
+                       controller_interface::ControllerBase)
 
-}  // namespace cartesian_ros_control
+/* Not yet implemented.
+PLUGINLIB_EXPORT_CLASS(twist_controllers::CartesianTrajectoryController,
+                       controller_interface::ControllerBase)
+*/
+
+PLUGINLIB_EXPORT_CLASS(position_controllers::CartesianTrajectoryController,
+                       controller_interface::ControllerBase)
+/* Not yet implemented
+PLUGINLIB_EXPORT_CLASS(velocity_controllers::CartesianTrajectoryController,
+                       controller_interface::ControllerBase)
+*/
