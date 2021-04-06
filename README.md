@@ -1,3 +1,6 @@
+[![ROS Industrial
+CI](https://github.com/fzi-forschungszentrum-informatik/cartesian_ros_control/actions/workflows/industrial_ci_action.yml/badge.svg?branch=master&event=push)](https://github.com/fzi-forschungszentrum-informatik/cartesian_ros_control/actions)
+
 # Cartesian ROS Control
 
 This package brings mechanisms for Cartesian control to the ROS-control framework.
