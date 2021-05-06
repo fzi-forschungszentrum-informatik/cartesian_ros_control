@@ -47,6 +47,11 @@ In the spirit of ROS control, the implementation is robot-agnostic and shall sup
 
 
 ## Acknowledgement
+Developed in collaboration between:
+
+[<img height="60" alt="Universal Robots A/S" src="cartesian_ros_control/doc/resources/ur_logo.jpg">](https://www.universal-robots.com/) &nbsp; and &nbsp;
+[<img height="60" alt="FZI Research Center for Information Technology" src="cartesian_ros_control/doc/resources/fzi_logo.png">](https://www.fzi.de).
+
 ***
 <!-- 
     ROSIN acknowledgement from the ROSIN press kit
