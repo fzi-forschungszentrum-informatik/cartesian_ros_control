@@ -261,7 +261,27 @@ namespace cartesian_ros_control
       return false;
     };
 
-    ik_solver_ = std::make_unique<KDL::ChainIkSolverPos_LMA>(robot_chain_);
+    // Load user specified inverse kinematics solver
+    std::string solver_type = "example_solver"; // Default
+    controller_nh.getParam("ik_solver", solver_type);
+
+    solver_loader_ = std::make_unique<pluginlib::ClassLoader<IKSolver>>(
+          "cartesian_trajectory_controller", "cartesian_ros_control::IKSolver");
+    try
+    {
+      ik_solver_ = solver_loader_->createInstance(solver_type);
+    }
+    catch (pluginlib::PluginlibException& ex)
+    {
+      ROS_ERROR_STREAM(ex.what());
+      return false;
+    }
+
+    if (!ik_solver_->init(robot_chain_, root_nh, controller_nh))
+    {
+      return false;
+    }
+
     return true;
   }
 
@@ -285,7 +305,7 @@ namespace cartesian_ros_control
     }
 
     // Compute inverse kinematics
-    ik_solver_->CartToJnt(current, goal, target);
+    ik_solver_->cartToJnt(current, goal, target);
 
     // Command each joint
     for (size_t i = 0; i < size; ++i)
