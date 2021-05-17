@@ -8,9 +8,22 @@ jobs:
       matrix:
         ros_distro: [ kinetic, melodic ]
         ros_repo: [ main, testing ]
+    env:
+      CCACHE_DIR: "${{ github.workspace }}/.ccache"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - name: ccache cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          # we always want the ccache cache to be persisted, as we cannot easily
+          # determine whether dependencies have changed, and ccache will manage
+          # updating the cache for us. Adding 'run_id' to the key will force an
+          # upload at the end of the job.
+          key: ccache-${{ matrix.ros_distro }}-${{ matrix.ros_repo }}-${{github.run_id}}
+          restore-keys: |
+            ccache-${{ matrix.ros_distro }}-${{ matrix.ros_repo }}
       - uses: 'ros-industrial/industrial_ci@master'
         env:
           ROS_DISTRO: ${{ matrix.ros_distro }}
