@@ -8,15 +8,15 @@ add_compile_options(-std=c++14)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  trajectory_msgs
+  actionlib
   cartesian_control_msgs
-  geometry_msgs
   cartesian_interface
   controller_manager
-  hardware_interface
-  actionlib
   dynamic_reconfigure
+  geometry_msgs
+  hardware_interface
+  roscpp
+  trajectory_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,18 +108,20 @@ generate_dynamic_reconfigure_options(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
+  INCLUDE_DIRS
+    include
+  LIBRARIES
+    ${PROJECT_NAME}
   CATKIN_DEPENDS
-  roscpp
-  trajectory_msgs
-  cartesian_control_msgs
-  geometry_msgs
-  cartesian_interface
-  controller_manager
-  hardware_interface
-  actionlib
-  dynamic_reconfigure
+    actionlib
+    cartesian_control_msgs
+    cartesian_interface
+    controller_manager
+    dynamic_reconfigure
+    geometry_msgs
+    hardware_interface
+    roscpp
+    trajectory_msgs
 #  DEPENDS system_lib
 )
 
@@ -149,8 +151,8 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(hw_interface_example
-  examples/hw_interface/hw_interface.cpp
   examples/hw_interface/control_node.cpp
+  examples/hw_interface/hw_interface.cpp
 )
 
 ## Rename C++ executable without prefix
@@ -208,7 +210,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 install(FILES
-  pass_through_controllers_plugin.xml
+  ${PROJECT_NAME}_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
