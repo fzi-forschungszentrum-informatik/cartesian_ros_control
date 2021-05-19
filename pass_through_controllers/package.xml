@@ -2,8 +2,10 @@
 <package format="2">
   <name>pass_through_controllers</name>
   <version>0.0.0</version>
-  <description>The pass_through_controllers package</description>
-
+  <description>
+    Trajectory controllers (joint-based and Cartesian) that forward trajectories
+    directly to a robot controller and let it handle trajectory interpolation and execution.
+  </description>
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
