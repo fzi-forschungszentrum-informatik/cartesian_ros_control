@@ -2,7 +2,7 @@
 <package format="2">
   <name>cartesian_ros_control</name>
   <version>0.0.0</version>
-  <description>The cartesian_ros_control package</description>
+  <description>ros_control in Cartesian space meta package.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
