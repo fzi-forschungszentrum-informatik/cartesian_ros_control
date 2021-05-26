@@ -155,7 +155,7 @@ On the robot side, however, there will be additional ways to interfere that most
 Implementers of this driver need to determine what should happen when different events occur.
 The passthrough controllers support the additional concept of speed scaling, which can be used to pause trajectories.
 
-The following examples explain the passthrough controllers' behavior with the Universal Robots.
+The following examples explain the passthrough controllers' behavior with the Universal Robots [`ur_robot_driver`](http://wiki.ros.org/ur_robot_driver).
 
 ### What happens when you hit the emergency stop?
 The trajectory execution is paused in this case by internally setting the speed scaling to zero. Once the program resumes, the trajectory execution continues.
