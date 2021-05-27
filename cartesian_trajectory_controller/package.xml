@@ -74,6 +74,7 @@
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>hardware_interface</exec_depend>
 
+  <test_depend>rostest</test_depend>
 
   <!-- This is important for the export to work -->
   <exec_depend>controller_interface</exec_depend>
