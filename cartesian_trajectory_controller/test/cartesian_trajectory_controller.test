@@ -32,10 +32,12 @@
                 "
         />
 
-        <!-- Visualization -->
+        <!-- Use this visualization for debugging -->
+        <!--
         <arg name="my_rviz" value="-d $(find cartesian_trajectory_controller)/test/visualization.rviz" />
         <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="$(arg my_rviz)" output="screen" >
         </node>
+        -->
 
         <!-- Tests -->
         <test test-name="controller_test" pkg="cartesian_trajectory_controller" type="test_controller.py" time-limit="60.0"/>
