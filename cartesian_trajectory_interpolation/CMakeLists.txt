@@ -205,6 +205,18 @@ install(DIRECTORY include/${PROJECT_NAME}/
 ## Testing ##
 #############
 
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(cartesian_state_test test/cartesian_state_test.cpp)
+  target_link_libraries(cartesian_state_test ${catkin_LIBRARIES} ${PROJECT_NAME})
+
+  catkin_add_gtest(cartesian_trajectory_segment_test test/cartesian_trajectory_segment_test.cpp)
+  target_link_libraries(cartesian_trajectory_segment_test ${catkin_LIBRARIES} ${PROJECT_NAME})
+
+  catkin_add_gtest(cartesian_trajectory_test test/cartesian_trajectory_test.cpp)
+  target_link_libraries(cartesian_trajectory_test ${catkin_LIBRARIES} ${PROJECT_NAME})
+
+endif()
+
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_cartesian_trajectory_interpolation.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
