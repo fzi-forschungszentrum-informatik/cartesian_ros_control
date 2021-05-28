@@ -255,12 +255,12 @@ namespace trajectory_controllers {
     {
       // TODO: Velocity and acceleration limits will be affected by speed scaling.
       // Address this once we know more edge cases during beta testing.
-      if ((path_tolerances_[i].position > 0.0 &&
-           std::abs(error.positions[i]) > path_tolerances_[i].position) ||
-          (path_tolerances_[i].velocity > 0.0 &&
-           std::abs(error.velocities[i]) > path_tolerances_[i].velocity) ||
-          (path_tolerances_[i].acceleration > 0.0 &&
-           std::abs(error.accelerations[i]) > path_tolerances_[i].acceleration))
+      if ((tolerances[i].position > 0.0 &&
+           std::abs(error.positions[i]) > tolerances[i].position) ||
+          (tolerances[i].velocity > 0.0 &&
+           std::abs(error.velocities[i]) > tolerances[i].velocity) ||
+          (tolerances[i].acceleration > 0.0 &&
+           std::abs(error.accelerations[i]) > tolerances[i].acceleration))
       {
         return false;
       }
