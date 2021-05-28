@@ -51,6 +51,7 @@ class IntegrationTest(unittest.TestCase):
     def test_normal_execution(self):
         """ Test the basic functionality on a straight line """
         self.move_to_start()
+        self.switch_to_cartesian_control()
         self.move_square()
         self.assertEqual(self.cart_client.get_result().error_code,
                          FollowCartesianTrajectoryResult.SUCCESSFUL)
@@ -58,6 +59,7 @@ class IntegrationTest(unittest.TestCase):
     def test_preemption(self):
         """ Test whether the preemption mechanism works correctly """
         self.move_to_start()
+        self.switch_to_cartesian_control()
         self.move_square(wait_for_result=False)
         time.sleep(3)  # stop somewhere during execution
         self.cart_client.cancel_goal()
@@ -69,6 +71,7 @@ class IntegrationTest(unittest.TestCase):
         """ Test whether invalid goals are rejected correctly """
 
         self.move_to_start()
+        self.switch_to_cartesian_control()
 
         # Time from start is not strictly increasing.
         # This also covers points without time_from_start (they are all implicitly 0).
@@ -107,6 +110,7 @@ class IntegrationTest(unittest.TestCase):
             start_joint_state)
         self.set_joints.wait_for_result()
 
+    def switch_to_cartesian_control(self):
         srv = SwitchControllerRequest()
         srv.stop_controllers = ['joint_trajectory_controller']
         srv.start_controllers = ['cartesian_trajectory_controller']
