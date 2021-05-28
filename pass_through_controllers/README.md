@@ -148,6 +148,29 @@ you should periodically fill the feedback buffers:
 
 ```
 
+## FAQ
+The passthrough controllers forward the trajectories to the robot for interpolation.
+On the ROS side, the possibilities to interfere with a running action are fairly limited and you can only start or preempt the trajectory execution.
+On the robot side, however, there will be additional ways to interfere with the execution that mostly depend on the OEM robot program and the implementation of the respective driver.
+The passthrough controllers support the additional concept of speed scaling, which can be used to pause trajectories.
+
+The following examples explain the passthrough controllers' behavior with the Universal Robots [`ur_robot_driver`](http://wiki.ros.org/ur_robot_driver).
+
+### What happens when you hit the emergency stop?
+The trajectory execution is paused in this case by internally setting the speed scaling to zero. Once the program resumes, the trajectory execution continues.
+The passthrough controllers will wait until the execution finishes but will report an execution failure due to missing the waypoints' time requirements if a goal tolerance is specified.
+
+### What happens when you power-off the system?
+This aborts the current trajectory execution.
+
+### What happens when the robot goes into protective stop?
+This is handled similar to hitting the emergency stop. The speed scaling is set
+to zero and the trajectory execution continues once the protective
+stop is resolved.
+
+### What happens when you stop the program?
+This stops all ROS-controllers and aborts the current trajectory execution.
+
 ***
 <!-- 
     ROSIN acknowledgement from the ROSIN press kit
