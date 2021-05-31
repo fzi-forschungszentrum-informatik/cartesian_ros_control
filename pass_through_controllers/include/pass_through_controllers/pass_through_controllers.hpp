@@ -276,7 +276,7 @@ namespace trajectory_controllers {
         {
           return std::abs(error.accelerations[i]) <= tolerances[i].acceleration;
         }
-        msg = "Acceleration tolerances not fully supported by the driver implementation.";
+        msg = "Acceleration tolerances  specified, but not fully supported by the driver implementation.";
         return false;
       }
     }
