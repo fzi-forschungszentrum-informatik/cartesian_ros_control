@@ -263,7 +263,7 @@ namespace trajectory_controllers {
         {
           return std::abs(error.velocities[i]) <= tolerances[i].velocity;
         }
-        else return false;
+        return false;
       }
 
       if (tolerances[i].acceleration > 0.0)
