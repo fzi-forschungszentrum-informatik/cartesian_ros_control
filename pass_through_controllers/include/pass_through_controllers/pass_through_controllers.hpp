@@ -243,28 +243,40 @@ namespace trajectory_controllers {
     const TrajectoryPoint& error,
     const Tolerance& tolerances)
   {
-    // Precondition
-    if (!tolerances.empty())
-    {
-      assert(error.positions.size() == tolerances.size() &&
-          error.velocities.size() == tolerances.size() &&
-          error.accelerations.size() == tolerances.size());
-    }
-
+    // Check each user-given tolerance field individually.
+    // Fail if either the tolerance is exceeded or if the robot driver does not
+    // provide semantically correct data (conservative fail).
     for (size_t i = 0; i < tolerances.size(); ++i)
     {
-      // TODO: Velocity and acceleration limits will be affected by speed scaling.
-      // Address this once we know more edge cases during beta testing.
-      if ((tolerances[i].position > 0.0 &&
-           std::abs(error.positions[i]) > tolerances[i].position) ||
-          (tolerances[i].velocity > 0.0 &&
-           std::abs(error.velocities[i]) > tolerances[i].velocity) ||
-          (tolerances[i].acceleration > 0.0 &&
-           std::abs(error.accelerations[i]) > tolerances[i].acceleration))
+      if (tolerances[i].position > 0.0)
       {
-        return false;
+        if (error.positions.size() == tolerances.size())
+        {
+          return std::abs(error.positions[i]) <= tolerances[i].position;
+        }
+        else return false;
+      }
+
+      if (tolerances[i].velocity > 0.0)
+      {
+        if (error.velocities.size() == tolerances.size())
+        {
+          return std::abs(error.velocities[i]) <= tolerances[i].velocity;
+        }
+        else return false;
+      }
+
+      if (tolerances[i].acceleration > 0.0)
+      {
+        if (error.accelerations.size() == tolerances.size())
+        {
+          return std::abs(error.accelerations[i]) <= tolerances[i].acceleration;
+        }
+        else return false;
       }
     }
+
+    // Every error is ok for uninitialized tolerances
     return true;
   }
 
