@@ -256,7 +256,7 @@ namespace trajectory_controllers {
         {
           return std::abs(error.positions[i]) <= tolerances[i].position;
         }
-        msg = "Position tolerances not fully supported by the driver implementation.";
+        msg = "Position tolerances specified, but not fully supported by the driver implementation.";
         return false;
       }
 
