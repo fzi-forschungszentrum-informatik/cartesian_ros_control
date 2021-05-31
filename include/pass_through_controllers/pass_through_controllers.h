@@ -218,11 +218,13 @@ private:
    *
    * @param error The error to check
    * @param tolerances The tolerances to check against
+   * @param error_msg Additional information when tolerance check fails
    *
    * @return False if any of the errors exceeds its tolerance, else true
    */
   bool withinTolerances(const typename Base::TrajectoryPoint& error,
-                        const typename Base::Tolerance& tolerances);
+                        const typename Base::Tolerance& tolerances,
+                        std::string& error_msg);
 
   /**
    * @brief Check if follow trajectory goals are valid
