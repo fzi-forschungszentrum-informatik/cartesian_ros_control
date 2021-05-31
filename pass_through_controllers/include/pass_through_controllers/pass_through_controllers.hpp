@@ -228,11 +228,12 @@ namespace trajectory_controllers {
     const typename Base::TrajectoryFeedback& feedback)
   {
     // Abort if any of the joints exceeds its path tolerance
-    if (!withinTolerances(feedback.error, path_tolerances_))
+    std::string msg = "";
+    if (!withinTolerances(feedback.error, path_tolerances_, msg))
     {
       typename Base::FollowTrajectoryResult result;
       result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
-      action_server_->setAborted(result);
+      action_server_->setAborted(result, msg);
       done_ = true;
       return;
     }
@@ -241,36 +242,52 @@ namespace trajectory_controllers {
   template <>
   bool PassThroughController<hardware_interface::JointTrajectoryInterface>::withinTolerances(
     const TrajectoryPoint& error,
-    const Tolerance& tolerances)
+    const Tolerance& tolerances,
+    std::string& msg)
   {
-    // Precondition
-    if (!tolerances.empty())
-    {
-      assert(error.positions.size() == tolerances.size() &&
-          error.velocities.size() == tolerances.size() &&
-          error.accelerations.size() == tolerances.size());
-    }
-
+    // Check each user-given tolerance field individually.
+    // Fail if either the tolerance is exceeded or if the robot driver does not
+    // provide semantically correct data (conservative fail).
     for (size_t i = 0; i < tolerances.size(); ++i)
     {
-      // TODO: Velocity and acceleration limits will be affected by speed scaling.
-      // Address this once we know more edge cases during beta testing.
-      if ((tolerances[i].position > 0.0 &&
-           std::abs(error.positions[i]) > tolerances[i].position) ||
-          (tolerances[i].velocity > 0.0 &&
-           std::abs(error.velocities[i]) > tolerances[i].velocity) ||
-          (tolerances[i].acceleration > 0.0 &&
-           std::abs(error.accelerations[i]) > tolerances[i].acceleration))
+      if (tolerances[i].position > 0.0)
       {
+        if (error.positions.size() == tolerances.size())
+        {
+          return std::abs(error.positions[i]) <= tolerances[i].position;
+        }
+        msg = "Position tolerances specified, but not fully supported by the driver implementation.";
+        return false;
+      }
+
+      if (tolerances[i].velocity > 0.0)
+      {
+        if (error.velocities.size() == tolerances.size())
+        {
+          return std::abs(error.velocities[i]) <= tolerances[i].velocity;
+        }
+        msg = "Velocity tolerances specified, but not fully supported by the driver implementation.";
+        return false;
+      }
+
+      if (tolerances[i].acceleration > 0.0)
+      {
+        if (error.accelerations.size() == tolerances.size())
+        {
+          return std::abs(error.accelerations[i]) <= tolerances[i].acceleration;
+        }
+        msg = "Acceleration tolerances  specified, but not fully supported by the driver implementation.";
         return false;
       }
     }
+
+    // Every error is ok for uninitialized tolerances
     return true;
   }
 
   template <>
   bool PassThroughController<hardware_interface::CartesianTrajectoryInterface>::withinTolerances(
-    const typename Base::TrajectoryPoint& error, const typename Base::Tolerance& tolerances)
+    const typename Base::TrajectoryPoint& error, const typename Base::Tolerance& tolerances, std::string& msg)
   {
     // Every error is ok for uninitialized tolerances
     Base::Tolerance uninitialized;
@@ -297,6 +314,7 @@ namespace trajectory_controllers {
         not_within_limits(error.acceleration.linear, tolerances.acceleration_error.linear) ||
         not_within_limits(error.acceleration.angular, tolerances.acceleration_error.angular))
     {
+      msg = "Tolerance check failed at least for one dimension";
       return false;
     }
 
@@ -336,17 +354,19 @@ namespace trajectory_controllers {
     typename Base::FollowTrajectoryResult result;
 
     // Abort if any of the joints exceeds its goal tolerance
-    if (!withinTolerances(p, goal_tolerances_))
+    std::string msg = "";
+    if (!withinTolerances(p, goal_tolerances_, msg))
     {
       result.error_code = Base::FollowTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
-      action_server_->setAborted(result);
+      action_server_->setAborted(result, msg);
 
       trajectory_handle_->cancelCommand();
     }
     else // Succeed
     {
+      msg = "Success";
       result.error_code = Base::FollowTrajectoryResult::SUCCESSFUL;
-      action_server_->setSucceeded(result);
+      action_server_->setSucceeded(result, msg);
     }
 
     done_ = true;
