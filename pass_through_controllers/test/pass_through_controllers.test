@@ -1,0 +1,8 @@
+<launch>
+        <include file="$(find pass_through_controllers)/test/launch/setup.launch"/>
+
+        <!-- Tests -->
+        <test test-name="cartesian_trajectory_forwarding_test" pkg="pass_through_controllers" type="test_forward_cartesian_trajectory.py" time-limit="60.0"/>
+        <test test-name="joint_trajectory_forwarding_test" pkg="pass_through_controllers" type="test_forward_joint_trajectory.py" time-limit="60.0"/>
+
+</launch>

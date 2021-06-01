@@ -1,0 +1,33 @@
+<launch>
+        <group ns="hw_interface">
+
+                <!-- Robot_description -->
+                <param name="robot_description"
+                command="$(find xacro)/xacro --inorder '$(find cartesian_trajectory_controller)/test/robot.urdf.xacro'" />
+
+                <!-- Hardware configuration -->
+                <rosparam file="$(find pass_through_controllers)/test/hw_interface/config.yaml" command="load">
+                </rosparam>
+
+                <!-- Hardware control node -->
+                <remap from="joint_trajectory_controller/follow_joint_trajectory"
+                        to="/robot/joint_trajectory_controller/follow_joint_trajectory"/>
+                <remap from="cartesian_trajectory_controller/follow_cartesian_trajectory"
+                        to="/robot/cartesian_trajectory_controller/follow_cartesian_trajectory"/>
+
+                <node name="control_node" pkg="pass_through_controllers" type="hw_interface_example" output="screen"/>
+
+                <!-- Available controllers -->
+                <rosparam file="$(find pass_through_controllers)/test/hw_interface/controllers.yaml" command="load"></rosparam>
+
+                <!-- Spawn controllers -->
+                <node name="stopped_controller_spawner" pkg="controller_manager" type="spawner"
+                        args="--stopped
+                        forward_joint_trajectories
+                        forward_cartesian_trajectories
+                        conflicting_joint_controller
+                        "
+                />
+        </group>
+
+</launch>

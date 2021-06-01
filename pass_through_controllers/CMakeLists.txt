@@ -95,7 +95,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
-  examples/cfg/SpeedScaling.cfg
+  test/cfg/SpeedScaling.cfg
 )
 
 ###################################
@@ -133,7 +133,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  examples/hw_interface
+  test/hw_interface
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -150,10 +150,6 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(hw_interface_example
-  examples/hw_interface/control_node.cpp
-  examples/hw_interface/hw_interface.cpp
-)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -163,13 +159,9 @@ add_executable(hw_interface_example
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(hw_interface_example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(hw_interface_example
   ${catkin_LIBRARIES}
 )
 
@@ -217,6 +209,21 @@ install(FILES
 #############
 ## Testing ##
 #############
+
+if(CATKIN_ENABLE_TESTING)
+
+  add_executable(hw_interface_example
+    test/hw_interface/control_node.cpp
+    test/hw_interface/hw_interface.cpp
+  )
+  add_dependencies(hw_interface_example ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(hw_interface_example ${catkin_LIBRARIES})
+
+
+  find_package(rostest REQUIRED)
+
+  add_rostest(test/pass_through_controllers.test)
+endif()
 
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_pass_through_controllers.cpp)
