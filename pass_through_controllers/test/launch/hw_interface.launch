@@ -1,4 +1,9 @@
 <launch>
+        <!-- Configuration -->
+        <arg name="debug" default="false"/>
+        <arg if="$(arg debug)" name="launch-prefix" value="screen -d -m gdb -command=$(env HOME)/.ros/my_debug_log --ex run --args"/>
+        <arg unless="$(arg debug)" name="launch-prefix" value=""/>
+
         <group ns="hw_interface">
 
                 <!-- Robot_description -->
@@ -15,7 +20,7 @@
                 <remap from="cartesian_trajectory_controller/follow_cartesian_trajectory"
                         to="/robot/cartesian_trajectory_controller/follow_cartesian_trajectory"/>
 
-                <node name="control_node" pkg="pass_through_controllers" type="hw_interface_example" output="screen"/>
+                <node name="control_node" pkg="pass_through_controllers" type="hw_interface_example" output="screen" launch-prefix="$(arg launch-prefix)"/>
 
                 <!-- Available controllers -->
                 <rosparam file="$(find pass_through_controllers)/test/hw_interface/controllers.yaml" command="load"></rosparam>
