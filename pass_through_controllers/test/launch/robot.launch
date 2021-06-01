@@ -1,0 +1,6 @@
+<launch>
+        <group ns="robot">
+                <include file="$(find cartesian_trajectory_controller)/test/setup.xml"/>
+        </group>
+
+</launch>
