@@ -209,7 +209,7 @@ install(FILES
   test/config.yaml
   test/controllers.yaml
   test/robot.urdf.xacro
-  test/setup.launch
+  test/setup.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/test/
 )
 
