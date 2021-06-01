@@ -18,6 +18,7 @@
 #include "control_msgs/FollowJointTrajectoryActionGoal.h"
 #include "control_msgs/FollowJointTrajectoryFeedback.h"
 #include "control_msgs/FollowJointTrajectoryGoal.h"
+#include "ros/duration.h"
 #include <functional>
 
 
@@ -126,14 +127,18 @@ HWInterface::HWInterface()
   // Robot dummy communication
   joint_based_communication_ =
     std::make_unique<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >(
-      "/robot_dummy/vendor_joint_controller/follow_joint_trajectory", true);
+      "joint_trajectory_controller/follow_joint_trajectory", true);
 
   cartesian_based_communication_ =
     std::make_unique<actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction> >(
-      "/robot_dummy/vendor_cartesian_controller/follow_cartesian_trajectory", true);
+      "cartesian_trajectory_controller/follow_cartesian_trajectory", true);
 
-  joint_based_communication_->waitForServer();
-  cartesian_based_communication_->waitForServer();
+  if (!joint_based_communication_->waitForServer(ros::Duration(10)) ||
+      !cartesian_based_communication_->waitForServer(ros::Duration(10)))
+  {
+    ROS_ERROR("Trajectory action interfaces of the robot dummy are not available.");
+    return;
+  };
 
   ROS_INFO("Example HW interface is ready");
 }

@@ -1,0 +1,9 @@
+<launch>
+
+        <!-- A dummy robot to mimic vendor control -->
+        <include file="$(find pass_through_controllers)/test/launch/robot.launch"/>
+
+        <!-- An example hw interface to show the usage of pass-through controllers -->
+        <include file="$(find pass_through_controllers)/test/launch/hw_interface.launch"/>
+
+</launch>
