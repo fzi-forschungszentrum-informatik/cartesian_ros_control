@@ -190,7 +190,14 @@ namespace trajectory_controllers {
     goal_tolerances_ = goal->goal_tolerance;
     
     // Notify the  vendor robot control.
-    trajectory_handle_->setCommand(*goal);
+    if (!trajectory_handle_->setCommand(*goal))
+    {
+      ROS_ERROR("Trajectory goal is invalid.");
+      typename Base::FollowTrajectoryResult result;
+      result.error_code = Base::FollowTrajectoryResult::INVALID_GOAL;
+      action_server_->setAborted(result);
+      return;
+    }
 
     // Time keeping
     action_duration_.current = ros::Duration(0.0);

@@ -98,6 +98,25 @@ class IntegrationTest(unittest.TestCase):
         self.assertEqual(self.client.get_result().error_code,
                          FollowJointTrajectoryResult.SUCCESSFUL)
 
+    def test_wrong_joint_names(self):
+        """ Test whether a trajectory with wrong joint names fails """
+        self.switch_to_joint_control()
+
+        # Unknown joint names
+        joint_names = ['a', 'b', 'c', 'd', 'e', 'f']
+
+        start_joint_state = FollowJointTrajectoryGoal()
+        start_joint_state.trajectory.joint_names = joint_names
+
+        start_joint_state.trajectory.points = [
+            JointTrajectoryPoint(positions=self.joint_map.values(), time_from_start=rospy.Duration(3.0))]
+        self.client.send_goal(start_joint_state)
+        self.client.wait_for_result()
+
+        time.sleep(1)
+        self.assertEqual(self.client.get_result().error_code,
+                         FollowJointTrajectoryResult.INVALID_GOAL)
+
     def switch_to_joint_control(self):
         """ Assume possibly running Cartesian controllers"""
 

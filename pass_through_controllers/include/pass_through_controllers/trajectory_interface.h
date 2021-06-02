@@ -44,6 +44,7 @@
 #include <functional>
 #include <hardware_interface/internal/hardware_resource_manager.h>
 #include <cartesian_control_msgs/FollowCartesianTrajectoryGoal.h>
+#include <cartesian_control_msgs/FollowCartesianTrajectoryResult.h>
 #include <cartesian_control_msgs/FollowCartesianTrajectoryFeedback.h>
 #include <control_msgs/FollowJointTrajectoryGoal.h>
 #include <control_msgs/FollowJointTrajectoryFeedback.h>
@@ -150,8 +151,9 @@ class TrajectoryHandle
      * joint resource list.
      *
      * @param command The new trajectory
+     * @return True if command is feasible, false otherwise
      */
-    void setCommand(TrajectoryType command);
+    bool setCommand(TrajectoryType command);
 
     /**
      * @brief Read a trajectory from the command buffer
@@ -233,7 +235,7 @@ class TrajectoryHandle
 
 // Full spezialization for JointTrajectory
 template<> inline
-void TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(JointTrajectory command)
+bool TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(JointTrajectory command)
 {
   control_msgs::FollowJointTrajectoryGoal tmp;
 
@@ -246,7 +248,7 @@ void TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(Join
   {
     // msg must contain all joint names.
     ROS_WARN("Not forwarding trajectory. It contains wrong number of joints");
-    return;
+    return false;
   }
   for (auto msg_it = msg.begin(); msg_it != msg.end(); ++msg_it)
   {
@@ -254,7 +256,7 @@ void TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(Join
     if (expected.end() == expected_it)
     {
       ROS_WARN_STREAM("Not forwarding trajectory. It contains at least one unexpected joint name: " << *msg_it);
-      return;
+      return false;
     }
     else
     {
@@ -294,13 +296,13 @@ void TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(Join
   {
     cmd_callback_(*cmd_);
   }
-
+  return true;
 }
 
 
 // Full spezialization for CartesianTrajectory
 template<> inline
-void TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>::setCommand(CartesianTrajectory command)
+bool TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>::setCommand(CartesianTrajectory command)
 {
   assert(cmd_);
   *cmd_ = command;
@@ -309,6 +311,7 @@ void TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>::setComm
   {
     cmd_callback_(*cmd_);
   }
+  return true;
 }
 
 // Full spezializations for name deduction
