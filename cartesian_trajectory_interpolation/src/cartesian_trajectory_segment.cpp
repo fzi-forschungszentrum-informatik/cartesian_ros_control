@@ -105,6 +105,11 @@ namespace cartesian_ros_control
     fill(spline_state.position, state.p, state.q);
 
     // Spline velocities
+    if (state.v == Eigen::Vector3d::Zero() && state.w == Eigen::Vector3d::Zero())
+    {
+      // All-zero velocities are interpreted as `deliberately not specified by the user`.
+      return spline_state;
+    }
     Eigen::Quaterniond q_dot;
     Eigen::Vector3d tmp = state.q.inverse() * state.w;
     Eigen::Quaterniond omega(0, tmp.x(), tmp.y(), tmp.z());
@@ -113,6 +118,11 @@ namespace cartesian_ros_control
     fill(spline_state.velocity, state.q.inverse() * state.v, q_dot);
 
     // Spline accelerations
+    if (state.v_dot == Eigen::Vector3d::Zero() && state.w_dot == Eigen::Vector3d::Zero())
+    {
+      // All-zero accelerations are interpreted as `deliberately not specified by the user`.
+      return spline_state;
+    }
     Eigen::Quaterniond q_ddot;
     tmp = state.q.inverse() * state.w_dot;
     Eigen::Quaterniond omega_dot(0, tmp.x(), tmp.y(), tmp.z());

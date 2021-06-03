@@ -89,6 +89,9 @@ TEST(TestCartesianTrajectorySegment, SamplingBeyondBoundariesIsSafe)
 
 TEST(TestCartesianTrajectorySegment, DoubleConversionIsIdentity)
 {
+  //--------------------------------------------------------------------------------
+  // Cartesian -> Spline -> Cartesian
+  //--------------------------------------------------------------------------------
   CartesianState c;
 
   c.v.x() = 1.1;
@@ -113,6 +116,24 @@ TEST(TestCartesianTrajectorySegment, DoubleConversionIsIdentity)
   after << convert(convert(c));
 
   // Compact check if both `read` the same.
+  EXPECT_EQ(before.str(), after.str());
+
+  // The non-initialized case
+  CartesianState d;
+  before.clear();
+  after.clear();
+  before << d;
+  after << convert(convert(d));
+  EXPECT_EQ(before.str(), after.str());
+
+  //--------------------------------------------------------------------------------
+  // Spline -> Cartesian -> Spline
+  //--------------------------------------------------------------------------------
+  CartesianTrajectorySegment::SplineState s;
+  before.clear();
+  after.clear();
+  before << s;
+  after << convert(convert(s));
   EXPECT_EQ(before.str(), after.str());
 }
 
