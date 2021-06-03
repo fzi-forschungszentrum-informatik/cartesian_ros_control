@@ -262,14 +262,13 @@ namespace cartesian_ros_control
     };
 
     // Load user specified inverse kinematics solver
-    std::string solver_type = "example_solver"; // Default
-    controller_nh.getParam("ik_solver", solver_type);
+    std::string solver_type = controller_nh.param("ik_solver", std::string("example_solver"));
 
     solver_loader_ = std::make_unique<pluginlib::ClassLoader<IKSolver>>(
           "cartesian_trajectory_controller", "cartesian_ros_control::IKSolver");
     try
     {
-      ik_solver_ = solver_loader_->createInstance(solver_type);
+      ik_solver_.reset(solver_loader_->createUnmanagedInstance(solver_type));
     }
     catch (pluginlib::PluginlibException& ex)
     {

@@ -191,7 +191,7 @@ namespace cartesian_ros_control
 
       private:
         std::unique_ptr<pluginlib::ClassLoader<IKSolver> > solver_loader_;
-        boost::shared_ptr<IKSolver> ik_solver_;
+        std::unique_ptr<IKSolver> ik_solver_;
     };
 
 
