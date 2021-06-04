@@ -165,12 +165,12 @@ namespace cartesian_ros_control
    * given in the body-local reference frame that is implicitly defined
    * by \b state's pose. 
    *
-   * \note All-zero velocities and accelerations are interpreted as \a
-   * uninitialized and are mapped to \a empty spline velocities and
-   * accelerations, respectively. If zero values are intended as boundary
-   * conditions, then, at least one vanishingly small non-zero entry must be
-   * specified for one of the Cartesian dimensions, e.g. state.v.x() =
-   * 0.000001.
+   * \note By default, all-zero velocities and accelerations are interpreted as intended boundary conditions.
+   * If used together with Cartesian trajectory execution, this will yield
+   * smooth stops in the trajectory's waypoints (= cubic interpolation with
+   * zero velocity/acceleration boundary conditions).
+   * If users want linear interpolation, they should mark the velocities/accelerations as unspecified by setting
+   * at least one of the field values to NaN, e.g. state.v.x() = std::nan("0");
    *
    * @param state The CartesianState to convert
    *
