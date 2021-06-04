@@ -108,17 +108,9 @@ namespace cartesian_ros_control
     // Spline positions
     fill(spline_state.position, state.p, state.q);
 
-    // Obsolete after Eigen 3.4, which provides begin() and end() for Eigen vectors.
-    auto std = [](Eigen::Vector3d v){return std::vector<double>(v.data(), v.data() + v.size());};
-
-    // Check all vector fields for NaNs.
-    // Any occurence indicates a deliberately uninitialzed value.
-    auto uninitialized = [std](Eigen::Vector3d v)->bool{
-      return std::any_of(std(v).begin(), std(v).end(), [](double d){return std::isnan(d);});
-    };
-
     // Spline velocities
-    if (uninitialized(state.v) || uninitialized(state.w))
+    if(std::isnan(state.v.x()) || std::isnan(state.v.y()) || std::isnan(state.v.z())
+          || std::isnan(state.w.x()) || std::isnan(state.w.y()) || std::isnan(state.w.z()))
     {
       return spline_state;  // with uninitialized velocity/acceleration data
     }
@@ -130,7 +122,8 @@ namespace cartesian_ros_control
     fill(spline_state.velocity, state.q.inverse() * state.v, q_dot);
 
     // Spline accelerations
-    if (uninitialized(state.v_dot) || uninitialized(state.w_dot))
+    if(std::isnan(state.v_dot.x()) || std::isnan(state.v_dot.y()) || std::isnan(state.v_dot.z())
+          || std::isnan(state.w_dot.x()) || std::isnan(state.w_dot.y()) || std::isnan(state.w_dot.z()))
     {
       return spline_state;  // with uninitialized acceleration data
     }
@@ -150,6 +143,10 @@ namespace cartesian_ros_control
     CartesianState state;
 
     // Cartesian positions
+    if (s.position.empty())
+    {
+      return state;  // with positions/velocities/accelerations zero initialized
+    }
     state.p = Eigen::Vector3d(s.position[0], s.position[1], s.position[2]);
     state.q = Eigen::Quaterniond(s.position[3], s.position[4], s.position[5], s.position[6]).normalized();
 

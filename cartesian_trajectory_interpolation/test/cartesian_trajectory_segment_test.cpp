@@ -126,15 +126,36 @@ TEST(TestCartesianTrajectorySegment, DoubleConversionIsIdentity)
   after << convert(convert(d));
   EXPECT_EQ(before.str(), after.str());
 
-  //--------------------------------------------------------------------------------
-  // Spline -> Cartesian -> Spline
-  //--------------------------------------------------------------------------------
+}
+
+TEST(TestCartesianTrajectorySegment, NansYieldEmptySplineVelocities)
+{
+  CartesianState c;
+  c.p.x() = 1.0;
+  c.p.y() = 2.0;
+  c.p.z() = 3.0;
+  c.q.w() = 4.0;
+  c.q.x() = 5.0;
+  c.q.y() = 6.0;
+  c.q.z() = 7.0;
+
+  c.v.x() = std::nan("0");
+
   CartesianTrajectorySegment::SplineState s;
-  before.clear();
-  after.clear();
-  before << s;
-  after << convert(convert(s));
-  EXPECT_EQ(before.str(), after.str());
+  s.position.push_back(1.0);
+  s.position.push_back(2.0);
+  s.position.push_back(3.0);
+  s.position.push_back(4.0);
+  s.position.push_back(5.0);
+  s.position.push_back(6.0);
+  s.position.push_back(7.0);
+  std::stringstream expected;
+  expected << s;
+
+  s = convert(c);
+  std::stringstream actual;
+  actual << s;
+  EXPECT_EQ(expected.str(), actual.str());
 }
 
 
