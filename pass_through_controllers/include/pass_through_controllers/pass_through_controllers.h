@@ -62,6 +62,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <vector>
 #include <memory>
+#include <atomic>
 
 
 
@@ -236,11 +237,11 @@ private:
   bool isValid(const typename Base::GoalConstPtr& goal);
 
   /**
-   * @brief Call this when the action goal's time is up.
+   * @brief Should get called upon finishing the forwarded trajectory
    */
-  void timesUp();
+  void doneCB(const hardware_interface::ExecutionState& event);
 
-  bool done_;
+  std::atomic<bool> done_;
   ActionDuration action_duration_;
   std::unique_ptr<hardware_interface::SpeedScalingHandle> speed_scaling_;
   std::vector<std::string> joint_names_;
