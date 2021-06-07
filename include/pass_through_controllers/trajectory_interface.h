@@ -53,6 +53,16 @@
 namespace hardware_interface {
 
 /**
+ * @brief Hardware-specific done flags
+ */
+enum class ExecutionState
+{
+  SUCCESS = 0,
+  NOT_RESPONDING = -1,
+  GENERAL_ERROR = -2,
+};
+
+/**
  * @brief TrajectoryType for joint-based trajectories
  */
 using JointTrajectory = control_msgs::FollowJointTrajectoryGoal;
@@ -71,8 +81,6 @@ using JointTrajectoryFeedback = control_msgs::FollowJointTrajectoryFeedback;
  * @brief FeedbackType for Cartesian trajectories
  */
 using CartesianTrajectoryFeedback = cartesian_control_msgs::FollowCartesianTrajectoryFeedback;
-
-
 
 /**
  * @brief A class implementing handles for trajectory hardware interfaces
@@ -218,6 +226,20 @@ class TrajectoryHandle
     void setJointNames(const std::vector<std::string>& joint_names) noexcept {joint_names_ = joint_names;}
 
     /**
+     * @brief Register a callback for the controller to react upon \a done signals from the hardware
+     *
+     * @param std::function The function to be called by the ROS controller
+     */
+    void registerDoneCallback(std::function<void(const ExecutionState&)>){}
+
+    /**
+     * @brief Mark the execution of a trajectory done.
+     *
+     * @param state The final state
+     */
+    void setDone(const ExecutionState& state){if (done_callback_ != nullptr) done_callback_(state);}
+
+    /**
      * @brief Get the joint names associated with this handle
      *
      * @return Joint names
@@ -229,6 +251,7 @@ class TrajectoryHandle
     FeedbackType* feedback_;
     std::function<void(const TrajectoryType&)> cmd_callback_;
     std::function<void()> cancel_callback_;;
+    std::function<void(const ExecutionState&)> done_callback_{nullptr};
     std::vector<std::string> joint_names_;
 };
 

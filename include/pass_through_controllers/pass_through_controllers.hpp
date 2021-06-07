@@ -116,6 +116,10 @@ namespace trajectory_controllers {
     action_server_->registerPreemptCallback(
         std::bind(&PassThroughController::preemptCB, this));
 
+    // Register callback for when hardware finishes (prematurely)
+    trajectory_handle_->registerDoneCallback(
+        std::bind(&PassThroughController::doneCB, this, std::placeholders::_1));
+
     action_server_->start();
 
     return true;
@@ -158,10 +162,16 @@ namespace trajectory_controllers {
       // Also set the done_ flag once that happens.
       monitorExecution(f);
 
-      // Time is up. Check goal tolerances and set terminal state.
+      // Time is up.
       if (action_duration_.current >= action_duration_.target)
       {
-        timesUp();
+        if (!done_)
+        {
+          ROS_WARN_ONCE(
+              "The trajectory should be finished by now. "
+              "Something might be wrong with the robot. "
+              "You might want to cancel this goal.");
+        }
       }
     }
   }
@@ -211,8 +221,8 @@ namespace trajectory_controllers {
     }
 
     // When done, the action server is in one of the three states:
-    // 1) succeeded: managed in timesUp()
-    // 2) aborted: managed in update() or in timesUp()
+    // 1) succeeded: managed in doneCB()
+    // 2) aborted: managed in update() or in doneCB()
     // 3) preempted: managed in preemptCB()
   }
 
@@ -241,6 +251,7 @@ namespace trajectory_controllers {
       typename Base::FollowTrajectoryResult result;
       result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
       action_server_->setAborted(result, msg);
+      trajectory_handle_->cancelCommand();
       done_ = true;
       return;
     }
@@ -354,20 +365,34 @@ namespace trajectory_controllers {
   }
 
   template <class TrajectoryInterface>
-  void PassThroughController<TrajectoryInterface>::timesUp()
+  void PassThroughController<TrajectoryInterface>::doneCB(const hardware_interface::ExecutionState& state)
   {
-    // Use most recent feedback
-    typename Base::TrajectoryPoint p = trajectory_handle_->getFeedback().error;
-    typename Base::FollowTrajectoryResult result;
+    // Be silent on user-side preemption
+    if (done_)
+    {
+      return;
+    }
 
-    // Abort if any of the joints exceeds its goal tolerance
+    // Check for unexpected events during execution
+    typename Base::FollowTrajectoryResult result;
     std::string msg = "";
+    if (state != hardware_interface::ExecutionState::SUCCESS)
+    {
+      // TODO: How do we stringify the hardware-specific error?
+      msg = "Robot responded with an error: ";
+      result.error_code = Base::FollowTrajectoryResult::INVALID_GOAL;
+      action_server_->setAborted(result, msg);
+      done_ = true;
+      return;
+    }
+
+    // Check if we meet the goal tolerances.
+    // The most recent feedback gets us the current state.
+    typename Base::TrajectoryPoint p = trajectory_handle_->getFeedback().error;
     if (!withinTolerances(p, goal_tolerances_, msg))
     {
       result.error_code = Base::FollowTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
       action_server_->setAborted(result, msg);
-
-      trajectory_handle_->cancelCommand();
     }
     else // Succeed
     {
