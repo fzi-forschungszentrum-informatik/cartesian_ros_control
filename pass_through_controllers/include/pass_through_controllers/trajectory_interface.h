@@ -53,13 +53,17 @@
 namespace hardware_interface {
 
 /**
- * @brief Hardware-specific done flags
+ * @brief Hardware-generic done flags for trajectory execution
+ *
+ * When forwarding trajectories to robots, we hand-over control of the actual
+ * execution.  This is a minimal set of generic flags to be reported by the
+ * hardware that PassThroughControllers can process and react upon.
  */
 enum class ExecutionState
 {
   SUCCESS = 0,
-  NOT_RESPONDING = -1,
-  GENERAL_ERROR = -2,
+  PREEMPTED = -1,
+  ABORTED = -2,
 };
 
 /**
@@ -228,6 +232,9 @@ class TrajectoryHandle
     /**
      * @brief Register a callback for the controller to react upon \a done signals from the hardware
      *
+     * Use this mechanism in the PassThroughController to bind to a member
+     * function for handling the ExecutionState of the forwarded trajectory.
+     *
      * @param std::function The function to be called by the ROS controller
      */
     void registerDoneCallback(std::function<void(const ExecutionState&)>){}
@@ -235,7 +242,11 @@ class TrajectoryHandle
     /**
      * @brief Mark the execution of a trajectory done.
      *
-     * @param state The final state
+     * Call this function when done with a forwarded trajectory in your
+     * RobotHW. The PassThroughController will implement a callback to 
+     * set appropriate result flags for the trajectory action clients.
+     *
+     * @param state The final state after trajectory execution
      */
     void setDone(const ExecutionState& state){if (done_callback_ != nullptr) done_callback_(state);}
 
