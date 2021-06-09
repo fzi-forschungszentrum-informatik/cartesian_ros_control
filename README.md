@@ -171,6 +171,12 @@ stop is resolved.
 ### What happens when you stop the program?
 This stops all ROS-controllers and aborts the current trajectory execution.
 
+## Acknowledgement
+Developed in collaboration between:
+
+[<img height="60" alt="Universal Robots A/S" src="doc/resources/ur_logo.jpg">](https://www.universal-robots.com/) &nbsp; and &nbsp;
+[<img height="60" alt="FZI Research Center for Information Technology" src="doc/resources/fzi_logo.png">](https://www.fzi.de).
+
 ***
 <!-- 
     ROSIN acknowledgement from the ROSIN press kit
