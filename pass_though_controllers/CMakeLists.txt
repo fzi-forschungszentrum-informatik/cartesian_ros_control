@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   hardware_interface
   roscpp
+  speed_scaling_interface
   trajectory_msgs
 )
 
@@ -121,6 +122,7 @@ catkin_package(
     geometry_msgs
     hardware_interface
     roscpp
+    speed_scaling_interface
     trajectory_msgs
 #  DEPENDS system_lib
 )

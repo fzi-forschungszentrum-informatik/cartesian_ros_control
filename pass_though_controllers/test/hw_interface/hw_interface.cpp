@@ -86,8 +86,8 @@ HWInterface::HWInterface()
   registerInterface(&jnt_state_interface_);
 
   // Initialize and register a Cartesian state handle
-  cartesian_ros_control::CartesianStateHandle cartesian_state_handle =
-    cartesian_ros_control::CartesianStateHandle(ref_frame_id_,
+  ros_controllers_cartesian::CartesianStateHandle cartesian_state_handle =
+    ros_controllers_cartesian::CartesianStateHandle(ref_frame_id_,
                                                 frame_id_,
                                                 &cartesian_pose_,
                                                 &cartesian_twist_,
@@ -97,8 +97,8 @@ HWInterface::HWInterface()
   registerInterface(&cart_state_interface_);
 
   // Initialize and register a Cartesian pose command handle
-  cartesian_ros_control::PoseCommandHandle pose_cmd_handle =
-    cartesian_ros_control::PoseCommandHandle(cartesian_state_handle, &pose_cmd_);
+  ros_controllers_cartesian::PoseCommandHandle pose_cmd_handle =
+    ros_controllers_cartesian::PoseCommandHandle(cartesian_state_handle, &pose_cmd_);
   pose_cmd_interface_.registerHandle(pose_cmd_handle);
   registerInterface(&pose_cmd_interface_);
 

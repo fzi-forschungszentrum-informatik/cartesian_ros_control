@@ -28,7 +28,7 @@
 #pragma once
 
 // ROS control
-#include <cartesian_interface/speed_scaling_interface.h>
+#include <speed_scaling_interface/speed_scaling_interface.h>
 #include <controller_interface/multi_interface_controller.h>
 #include <hardware_interface/robot_hw.h>
 #include <pass_through_controllers/trajectory_interface.h>

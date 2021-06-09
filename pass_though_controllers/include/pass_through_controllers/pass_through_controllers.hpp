@@ -32,7 +32,7 @@
 // Other
 #include "ros/duration.h"
 #include "ros/timer.h"
-#include "cartesian_interface/speed_scaling_interface.h"
+#include "speed_scaling_interface/speed_scaling_interface.h"
 #include <sstream>
 #include <string>
 

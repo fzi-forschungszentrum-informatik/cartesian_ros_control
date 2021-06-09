@@ -53,35 +53,38 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>roscpp</build_depend>
-  <build_depend>trajectory_msgs</build_depend>
+  <build_depend>actionlib</build_depend>
   <build_depend>cartesian_control_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
   <build_depend>cartesian_interface</build_depend>
   <build_depend>controller_manager</build_depend>
-  <build_depend>hardware_interface</build_depend>
-  <build_depend>actionlib</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>hardware_interface</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>trajectory_msgs</build_depend>
+  <build_depend>speed_scaling_interface</build_depend>
 
-  <build_export_depend>roscpp</build_export_depend>
-  <build_export_depend>trajectory_msgs</build_export_depend>
+  <build_export_depend>actionlib</build_export_depend>
   <build_export_depend>cartesian_control_msgs</build_export_depend>
-  <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>cartesian_interface</build_export_depend>
   <build_export_depend>controller_manager</build_export_depend>
-  <build_export_depend>hardware_interface</build_export_depend>
-  <build_export_depend>actionlib</build_export_depend>
   <build_export_depend>dynamic_reconfigure</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>hardware_interface</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>speed_scaling_interface</build_export_depend>
+  <build_export_depend>trajectory_msgs</build_export_depend>
 
-  <exec_depend>roscpp</exec_depend>
-  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>actionlib</exec_depend>
   <exec_depend>cartesian_control_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>cartesian_interface</exec_depend>
   <exec_depend>controller_manager</exec_depend>
-  <exec_depend>hardware_interface</exec_depend>
-  <exec_depend>actionlib</exec_depend>
   <exec_depend>dynamic_reconfigure</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>hardware_interface</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>speed_scaling_interface</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
 
 
   <test_depend>cartesian_trajectory_controller</test_depend>

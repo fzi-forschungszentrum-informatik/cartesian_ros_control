@@ -58,7 +58,7 @@
 #include <pass_through_controllers/SpeedScalingConfig.h>
 
 // Speed scaling
-#include <cartesian_interface/speed_scaling_interface.h>
+#include <speed_scaling_interface/speed_scaling_interface.h>
 
 // Other
 #include <string>
@@ -116,8 +116,8 @@ private:
   std::vector<std::string> joint_names_;
 
   // Interfaces
-  cartesian_ros_control::CartesianStateInterface cart_state_interface_;
-  cartesian_ros_control::PoseCommandInterface pose_cmd_interface_;
+  ros_controllers_cartesian::CartesianStateInterface cart_state_interface_;
+  ros_controllers_cartesian::PoseCommandInterface pose_cmd_interface_;
   hardware_interface::JointStateInterface jnt_state_interface_;
   hardware_interface::PositionJointInterface jnt_pos_interface_;
   hardware_interface::JointTrajectoryInterface jnt_traj_interface_;
