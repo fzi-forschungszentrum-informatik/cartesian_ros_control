@@ -73,12 +73,6 @@ class YourRobot : public hardware_interface::RobotHW
   // New HW interfaces for trajectory forwarding
   hardware_interface::JointTrajectoryInterface jnt_traj_interface_;
   hardware_interface::CartesianTrajectoryInterface cart_traj_interface_;
-
-  // Command and feedback buffers
-  hardware_interface::JointTrajectory jnt_traj_cmd_;
-  hardware_interface::JointTrajectoryFeedback jnt_traj_feedback_;
-  hardware_interface::CartesianTrajectory cart_traj_cmd_;
-  hardware_interface::CartesianTrajectoryFeedback cart_traj_feedback_;
 }
 ```
 And in the implementation:
@@ -86,28 +80,14 @@ And in the implementation:
 
 YourRobot::YourRobot()
 {
-...
-  // Initialize and register joint trajectory command handles for PassThroughControllers
-  hardware_interface::JointTrajectoryHandle joint_trajectory_handle =
-    hardware_interface::JointTrajectoryHandle(
-      &jnt_traj_cmd_,
-      &jnt_traj_feedback_,
-      std::bind(&HWInterface::startJointInterpolation, this, std::placeholders::_1),
-      std::bind(&HWInterface::cancelJointInterpolation, this));
-
-  jnt_traj_interface_.registerHandle(joint_trajectory_handle);
-  registerInterface(&jnt_traj_interface_);
-
-  // Initialize and register Cartesian trajectory command handles for PassThroughControllers
-  hardware_interface::CartesianTrajectoryHandle cartesian_trajectory_handle =
-    hardware_interface::CartesianTrajectoryHandle(
-      &cart_traj_cmd_,
-      &cart_traj_feedback_,
-      std::bind(&HWInterface::startCartesianInterpolation, this, std::placeholders::_1),
-      std::bind(&HWInterface::cancelCartesianInterpolation, this));
-
-  cart_traj_interface_.registerHandle(cartesian_trajectory_handle);
-  registerInterface(&cart_traj_interface_);
+  ...
+  // Register callbacks for trajectory passthrough
+  jnt_traj_interface_.registerGoalCallback(
+      std::bind(&HardwareInterface::startJointInterpolation, this, std::placeholders::_1));
+  jnt_traj_interface_.registerCancelCallback(std::bind(&HardwareInterface::cancelInterpolation, this));
+  cart_traj_interface_.registerGoalCallback(
+      std::bind(&HardwareInterface::startCartesianInterpolation, this, std::placeholders::_1));
+  cart_traj_interface_.registerCancelCallback(std::bind(&HardwareInterface::cancelInterpolation, this));
   ...
 }
 
@@ -131,6 +111,53 @@ void YourRobot::cancelCartesianInterpolation()
   // Robot-specific implementation here
 }
 
+// Once execution is finished on the robot, it should signal the driver about the finished
+// trajectory. This is vendor-specific code and the below is only an example.
+void trajectorySignalFromRobotReceived(robot_vendor::TrajectoryResult result)
+{
+  hardware_interface::ExecutionState final_state;
+  switch (result)
+  {
+    case robot_vendor::TrajectoryResult::TRAJECTORY_RESULT_SUCCESS:
+    {
+      final_state = hardware_interface::ExecutionState::SUCCESS;
+      break;
+    }
+    case urcl::control::TrajectoryResult::TRAJECTORY_RESULT_CANCELED:
+    {
+      final_state = hardware_interface::ExecutionState::SUCCESS;
+      break;
+    }
+    case urcl::control::TrajectoryResult::TRAJECTORY_RESULT_FAILUDE:
+    {
+      final_state = hardware_interface::ExecutionState::SUCCESS;
+      break;
+    }
+    default:
+    {
+      std::stringstream ss;
+      ss << "Unknown trajectory result: " << urcl::toUnderlying(result);
+      throw(std::invalid_argument(ss.str()));
+    }
+  }
+
+  // If you track which controller is running...
+  // You will have to know which interface to send the result
+  if (joint_forward_controller_running_)
+  {
+    jnt_traj_interface_.setDone(final_state);
+  }
+  else if (cartesian_forward_controller_running_)
+  {
+    cart_traj_interface_.setDone(final_state);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Received forwarded trajectory result with no forwarding controller running.");
+  }
+
+}
+
 
 ```
 
@@ -140,11 +167,14 @@ callbacks upon receiving new action goals or preemption requests. The implementa
 In order to provide feedback for the pass_through_controllers' action clients,
 you should periodically fill the feedback buffers:
 ```c++
-  // Handle name is a convention
-  jnt_traj_interface_.getHandle("joint_trajectory_handle").setFeedback(feedback);
-
-  // Handle name is a convention
-  cart_traj_interface_.getHandle("cartesian_trajectory_handle").setFeedback(feedback);
+  if (joint_forward_controller_running_)
+  {
+    jnt_traj_interface_.setFeedback(feedback);
+  }
+  if (cartesian_forward_controller_running_)
+  {
+    cart_traj_interface_.setFeedback(feedback);
+  }
 
 ```
 
