@@ -262,7 +262,7 @@ class TrajectoryInterface : public hardware_interface::HardwareInterface
 template<> inline
 bool TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::setGoal(JointTrajectory goal)
 {
-  control_msgs::FollowJointTrajectoryGoal tmp;
+  control_msgs::FollowJointTrajectoryGoal tmp = goal;
 
   // Respect joint order by computing the map between msg indices to expected indices.
   // If msg is {A, C, D, B} and expected is {A, B, C, D}, the associated mapping vector is {0, 2, 3, 1}
@@ -293,6 +293,7 @@ bool TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::setGoal(Join
 
   // Reorder the joint names and data fields in all trajectory points
   tmp.trajectory.joint_names = expected;
+  tmp.trajectory.points.clear();
 
   for (auto point : goal.trajectory.points)
   {
