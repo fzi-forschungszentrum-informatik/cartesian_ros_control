@@ -13,11 +13,15 @@
 
 #include "hw_interface.h"
 #include "actionlib/client/simple_action_client.h"
+#include "actionlib/client/simple_client_goal_state.h"
+#include "actionlib/client/simple_goal_state.h"
 #include "cartesian_interface/cartesian_command_interface.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "control_msgs/FollowJointTrajectoryActionGoal.h"
 #include "control_msgs/FollowJointTrajectoryFeedback.h"
 #include "control_msgs/FollowJointTrajectoryGoal.h"
+#include "control_msgs/FollowJointTrajectoryResult.h"
+#include "pass_through_controllers/trajectory_interface.h"
 #include "ros/duration.h"
 #include <functional>
 
@@ -94,26 +98,14 @@ HWInterface::HWInterface()
   }
   registerInterface(&jnt_pos_interface_);
 
-  // Initialize and register trajectory command handles for PassThroughControllers
-  hardware_interface::JointTrajectoryHandle joint_trajectory_handle =
-    hardware_interface::JointTrajectoryHandle(
-      &jnt_traj_cmd_,
-      &jnt_traj_feedback_,
-      std::bind(&HWInterface::startJointInterpolation, this, std::placeholders::_1),
-      std::bind(&HWInterface::cancelJointInterpolation, this));
-
-  jnt_traj_interface_.registerHandle(joint_trajectory_handle);
+  // Initialize and prepare joint trajectory interface for PassThroughControllers
+  jnt_traj_interface_.registerGoalCallback(std::bind(&HWInterface::startJointInterpolation, this, std::placeholders::_1));
+  jnt_traj_interface_.registerCancelCallback(std::bind(&HWInterface::cancelJointInterpolation, this));
   registerInterface(&jnt_traj_interface_);
 
-  // Initialize and register Cartesian trajectory command handles for PassThroughControllers
-  hardware_interface::CartesianTrajectoryHandle cartesian_trajectory_handle =
-    hardware_interface::CartesianTrajectoryHandle(
-      &cart_traj_cmd_,
-      &cart_traj_feedback_,
-      std::bind(&HWInterface::startCartesianInterpolation, this, std::placeholders::_1),
-      std::bind(&HWInterface::cancelCartesianInterpolation, this));
-
-  cart_traj_interface_.registerHandle(cartesian_trajectory_handle);
+  // Initialize and prepare Cartesian trajectory interface for PassThroughControllers
+  cart_traj_interface_.registerGoalCallback(std::bind(&HWInterface::startCartesianInterpolation, this, std::placeholders::_1));
+  cart_traj_interface_.registerCancelCallback(std::bind(&HWInterface::cancelCartesianInterpolation, this));
   registerInterface(&cart_traj_interface_);
 
   // Initialize and register speed scaling.
@@ -160,7 +152,7 @@ void HWInterface::startJointInterpolation(const hardware_interface::JointTraject
 {
   joint_based_communication_->sendGoal(
     trajectory,
-    0, // no done callback
+    std::bind(&HWInterface::handleJointDone, this, std::placeholders::_1, std::placeholders::_2),
     0, // no active callback
     std::bind(
       &HWInterface::handleJointFeedback, this, std::placeholders::_1)); // Process feedback continuously
@@ -170,7 +162,7 @@ void HWInterface::startCartesianInterpolation(const hardware_interface::Cartesia
 {
   cartesian_based_communication_->sendGoal(
     trajectory,
-    0, // no done callback
+    std::bind(&HWInterface::handleCartesianDone, this, std::placeholders::_1, std::placeholders::_2),
     0, // no active callback
     std::bind(
       &HWInterface::handleCartesianFeedback, this, std::placeholders::_1)); // Process feedback continuously
@@ -179,11 +171,23 @@ void HWInterface::startCartesianInterpolation(const hardware_interface::Cartesia
 void HWInterface::cancelJointInterpolation()
 {
   joint_based_communication_->cancelGoal();
+
+  // For your driver implementation, you might want to wait here for the robot to
+  // actually cancel the execution.
+
+  jnt_traj_interface_.setDone(
+      hardware_interface::ExecutionState::PREEMPTED);
 }
 
 void HWInterface::cancelCartesianInterpolation()
 {
   cartesian_based_communication_->cancelGoal();
+
+  // For your driver implementation, you might want to wait here for the robot to
+  // actually cancel the execution.
+
+  cart_traj_interface_.setDone(
+      hardware_interface::ExecutionState::PREEMPTED);
 }
 
 void HWInterface::dynamicReconfigureCallback(SpeedScalingConfig& config, uint32_t level)
@@ -194,13 +198,55 @@ void HWInterface::dynamicReconfigureCallback(SpeedScalingConfig& config, uint32_
 
 void HWInterface::handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)
 {
-  jnt_traj_interface_.getHandle("joint_trajectory_handle").setFeedback(*feedback);
+  jnt_traj_interface_.setFeedback(*feedback);
+}
+
+void HWInterface::handleJointDone(const actionlib::SimpleClientGoalState& state,
+                                  const control_msgs::FollowJointTrajectoryResultConstPtr& result)
+{
+  if (state == actionlib::SimpleClientGoalState::PREEMPTED)
+  {
+    jnt_traj_interface_.setDone(
+        hardware_interface::ExecutionState::PREEMPTED);
+    return;
+  }
+
+  if (result->error_code == control_msgs::FollowJointTrajectoryResult::SUCCESSFUL)
+  {
+    jnt_traj_interface_.setDone(
+        hardware_interface::ExecutionState::SUCCESS);
+    return;
+  }
+
+  jnt_traj_interface_.setDone(
+      hardware_interface::ExecutionState::ABORTED);
 }
 
 void HWInterface::handleCartesianFeedback(
   const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback)
 {
-  cart_traj_interface_.getHandle("cartesian_trajectory_handle").setFeedback(*feedback);
+  cart_traj_interface_.setFeedback(*feedback);
+}
+
+void HWInterface::handleCartesianDone(const actionlib::SimpleClientGoalState& state,
+                                      const cartesian_control_msgs::FollowCartesianTrajectoryResultConstPtr& result)
+{
+  if (state == actionlib::SimpleClientGoalState::PREEMPTED)
+  {
+    cart_traj_interface_.setDone(
+        hardware_interface::ExecutionState::PREEMPTED);
+    return;
+  }
+
+  if (result->error_code == control_msgs::FollowJointTrajectoryResult::SUCCESSFUL)
+  {
+    cart_traj_interface_.setDone(
+        hardware_interface::ExecutionState::SUCCESS);
+    return;
+  }
+
+  cart_traj_interface_.setDone(
+      hardware_interface::ExecutionState::ABORTED);
 }
 
 } // namespace examples

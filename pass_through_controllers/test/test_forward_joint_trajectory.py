@@ -69,6 +69,7 @@ class IntegrationTest(unittest.TestCase):
 
         start_joint_state.trajectory.points = [
             JointTrajectoryPoint(positions=self.joint_map.values(), time_from_start=rospy.Duration(3.0))]
+        start_joint_state.goal_time_tolerance = rospy.Duration(1)
         self.client.send_goal(start_joint_state)
         self.client.wait_for_result()
 
@@ -90,6 +91,7 @@ class IntegrationTest(unittest.TestCase):
 
         start_joint_state.trajectory.points = [
             JointTrajectoryPoint(positions=q_start, time_from_start=rospy.Duration(3.0))]
+        start_joint_state.goal_time_tolerance = rospy.Duration(1)
         self.client.send_goal(start_joint_state)
         self.client.wait_for_result()
 
@@ -110,6 +112,7 @@ class IntegrationTest(unittest.TestCase):
 
         start_joint_state.trajectory.points = [
             JointTrajectoryPoint(positions=self.joint_map.values(), time_from_start=rospy.Duration(3.0))]
+        start_joint_state.goal_time_tolerance = rospy.Duration(1)
         self.client.send_goal(start_joint_state)
         self.client.wait_for_result()
 
