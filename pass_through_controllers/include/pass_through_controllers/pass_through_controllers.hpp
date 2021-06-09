@@ -126,6 +126,12 @@ namespace trajectory_controllers {
     {
       // Stop trajectory interpolation on the robot
       trajectory_interface_->setCancel();
+
+      typename Base::FollowTrajectoryResult result;
+      result.error_string = "Controller stopped.";
+      result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      action_server_->setAborted(result);
+      done_ = true;
     }
 
   }
@@ -342,6 +348,11 @@ namespace trajectory_controllers {
   void PassThroughController<TrajectoryInterface>::doneCB(const hardware_interface::ExecutionState& state)
   {
     typename Base::FollowTrajectoryResult result;
+
+    if (!action_server_->isActive())
+    {
+      return;
+    }
 
     switch(state)
     {
