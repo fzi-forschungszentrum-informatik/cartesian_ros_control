@@ -65,26 +65,14 @@ namespace trajectory_controllers {
     }
 
     // Availability checked by MultiInterfaceController
-    auto traj_interface = hw->get<TrajectoryInterface>();
-    if (!traj_interface)
+    trajectory_interface_ = hw->get<TrajectoryInterface>();
+    if (!trajectory_interface_)
     {
       ROS_ERROR_STREAM(controller_nh.getNamespace() << ": No suitable trajectory interface found.");
       return false;
     }
 
-    try
-    {
-      traj_interface->setResources(joint_names_);
-      trajectory_handle_ = std::make_unique<typename Base::TrajectoryHandle>(
-          traj_interface->getHandle(Base::TrajectoryHandle::getName()));
-    }
-    catch (hardware_interface::HardwareInterfaceException& ex)
-    {
-      ROS_ERROR_STREAM(
-          controller_nh.getNamespace() << ": Exception getting trajectory handle from interface: "
-          << ex.what());
-      return false;
-    }
+    trajectory_interface_->setResources(joint_names_);
 
     // Use speed scaling interface if available (optional).
     auto speed_scaling_interface = hw->get<hardware_interface::SpeedScalingInterface>();
@@ -117,7 +105,7 @@ namespace trajectory_controllers {
         std::bind(&PassThroughController::preemptCB, this));
 
     // Register callback for when hardware finishes (prematurely)
-    trajectory_handle_->registerDoneCallback(
+    trajectory_interface_->registerDoneCallback(
         std::bind(&PassThroughController::doneCB, this, std::placeholders::_1));
 
     action_server_->start();
@@ -137,7 +125,7 @@ namespace trajectory_controllers {
     if (action_server_->isActive())
     {
       // Stop trajectory interpolation on the robot
-      trajectory_handle_->cancelCommand();
+      trajectory_interface_->setCancel();
     }
 
   }
@@ -151,7 +139,7 @@ namespace trajectory_controllers {
       const double factor = (speed_scaling_) ? *speed_scaling_->getScalingFactor() : 1.0;
       action_duration_.current += period * factor;
 
-      typename Base::TrajectoryFeedback f = trajectory_handle_->getFeedback();
+      typename Base::TrajectoryFeedback f = trajectory_interface_->getFeedback();
       action_server_->publishFeedback(f);
 
       // Check tolerances on each call and set terminal conditions for the
@@ -197,7 +185,7 @@ namespace trajectory_controllers {
     goal_tolerances_ = goal->goal_tolerance;
     
     // Notify the  vendor robot control.
-    if (!trajectory_handle_->setCommand(*goal))
+    if (!trajectory_interface_->setGoal(*goal))
     {
       ROS_ERROR("Trajectory goal is invalid.");
       typename Base::FollowTrajectoryResult result;
@@ -230,7 +218,7 @@ namespace trajectory_controllers {
     if (action_server_->isActive())
     {
       // Notify the vendor robot control.
-      trajectory_handle_->cancelCommand();
+      trajectory_interface_->setCancel();
     }
   }
 
@@ -241,7 +229,7 @@ namespace trajectory_controllers {
     // Preempt if any of the joints exceeds its path tolerance
     if (!withinTolerances(feedback.error, path_tolerances_))
     {
-      trajectory_handle_->cancelCommand();
+      trajectory_interface_->setCancel();
     }
   }
 
@@ -377,7 +365,7 @@ namespace trajectory_controllers {
         {
           // Check if we meet the goal tolerances.
           // The most recent feedback gets us the current state.
-          typename Base::TrajectoryPoint p = trajectory_handle_->getFeedback().error;
+          typename Base::TrajectoryPoint p = trajectory_interface_->getFeedback().error;
           if (!withinTolerances(p, goal_tolerances_))
           {
             result.error_string = "Trajectory finished execution but failed goal tolerances";
