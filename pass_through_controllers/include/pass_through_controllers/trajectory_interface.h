@@ -154,7 +154,7 @@ class TrajectoryInterface : public hardware_interface::HardwareInterface
      *
      * @param f The function to be called when trajectory execution is done
      */
-    void registerDoneCallback(const std::function<void(const ExecutionState&)>& f)
+    void registerDoneCallback(std::function<void(const ExecutionState&)> f)
     {
       done_callback_ = f;
     }
