@@ -15,7 +15,6 @@
 // limitations under the License.
 // -- END LICENSE BLOCK ------------------------------------------------
 
-
 //-----------------------------------------------------------------------------
 /*!\file    pass_through_controllers.h
  *
@@ -51,31 +50,27 @@
 #include <memory>
 #include <atomic>
 
-
-
-namespace trajectory_controllers {
-
-
+namespace trajectory_controllers
+{
 struct JointBase
 {
-  using Tolerance              = std::vector<control_msgs::JointTolerance>;
-  using TrajectoryPoint        = trajectory_msgs::JointTrajectoryPoint;
-  using TrajectoryFeedback     = hardware_interface::JointTrajectoryFeedback; 
+  using Tolerance = std::vector<control_msgs::JointTolerance>;
+  using TrajectoryPoint = trajectory_msgs::JointTrajectoryPoint;
+  using TrajectoryFeedback = hardware_interface::JointTrajectoryFeedback;
   using FollowTrajectoryAction = control_msgs::FollowJointTrajectoryAction;
   using FollowTrajectoryResult = control_msgs::FollowJointTrajectoryResult;
-  using GoalConstPtr           = control_msgs::FollowJointTrajectoryGoalConstPtr;
+  using GoalConstPtr = control_msgs::FollowJointTrajectoryGoalConstPtr;
 };
 
 struct CartesianBase
 {
-  using Tolerance              = cartesian_control_msgs::CartesianTolerance;
-  using TrajectoryPoint        = cartesian_control_msgs::CartesianTrajectoryPoint;
-  using TrajectoryFeedback     = hardware_interface::CartesianTrajectoryFeedback;
+  using Tolerance = cartesian_control_msgs::CartesianTolerance;
+  using TrajectoryPoint = cartesian_control_msgs::CartesianTrajectoryPoint;
+  using TrajectoryFeedback = hardware_interface::CartesianTrajectoryFeedback;
   using FollowTrajectoryAction = cartesian_control_msgs::FollowCartesianTrajectoryAction;
   using FollowTrajectoryResult = cartesian_control_msgs::FollowCartesianTrajectoryResult;
-  using GoalConstPtr           = cartesian_control_msgs::FollowCartesianTrajectoryGoalConstPtr;
+  using GoalConstPtr = cartesian_control_msgs::FollowCartesianTrajectoryGoalConstPtr;
 };
-
 
 /**
  * @brief A ROS controller for forwarding trajectories to a robot for interpolation
@@ -110,31 +105,26 @@ struct CartesianBase
 template <class TrajectoryInterface>
 class PassThroughController
   : public controller_interface::MultiInterfaceController<TrajectoryInterface,
-                                                          hardware_interface::SpeedScalingInterface>
-  , public std::conditional<
-      std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
-      JointBase,
-      CartesianBase>::type
+                                                          hardware_interface::SpeedScalingInterface>,
+    public std::conditional<std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
+                            JointBase, CartesianBase>::type
 {
 public:
   PassThroughController()
     : controller_interface::MultiInterfaceController<TrajectoryInterface,
                                                      hardware_interface::SpeedScalingInterface>(
-        true) // Make speed scaling optional
+          true)  // Make speed scaling optional
   {
   }
 
   // Alias for full qualifications of inherited types.
   // This enables a compact definition of member functions for both joint-based
   // and Cartesian-based PassThroughControllers.
-  using Base = typename std::conditional<
-      std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
-      JointBase,
-      CartesianBase>::type;
+  using Base =
+      typename std::conditional<std::is_same<TrajectoryInterface, hardware_interface::JointTrajectoryInterface>::value,
+                                JointBase, CartesianBase>::type;
 
-  bool init(hardware_interface::RobotHW* hw,
-            ros::NodeHandle& root_nh,
-            ros::NodeHandle& controller_nh);
+  bool init(hardware_interface::RobotHW* hw, ros::NodeHandle& root_nh, ros::NodeHandle& controller_nh);
 
   void starting(const ros::Time& time);
 
@@ -172,7 +162,7 @@ public:
    * The RobotHW should implement how this notification is handled by the robot
    * vendor control.
    *
-   * Also check 
+   * Also check
    * <a href="https://answers.ros.org/question/333316/actionlib-preempt-vs-cancel/">this info</a>.
    * on the simple action server's preemption policy:
    */
@@ -185,10 +175,12 @@ private:
    */
   struct ActionDuration
   {
-    ActionDuration() : target(0.0), current(0.0) {}
+    ActionDuration() : target(0.0), current(0.0)
+    {
+    }
 
-    ros::Duration target;  ///< Target duration of the current action.
-    ros::Duration current; ///< Real duration of the current action.
+    ros::Duration target;   ///< Target duration of the current action.
+    ros::Duration current;  ///< Real duration of the current action.
   };
 
   /**
@@ -206,8 +198,7 @@ private:
    *
    * @return False if any of the errors exceeds its tolerance, else true
    */
-  bool withinTolerances(const typename Base::TrajectoryPoint& error,
-                        const typename Base::Tolerance& tolerances);
+  bool withinTolerances(const typename Base::TrajectoryPoint& error, const typename Base::Tolerance& tolerances);
 
   /**
    * @brief Check if follow trajectory goals are valid
@@ -230,13 +221,9 @@ private:
   typename Base::Tolerance path_tolerances_;
   typename Base::Tolerance goal_tolerances_;
   TrajectoryInterface* trajectory_interface_;  ///* Resource managed by RobotHW
-  std::unique_ptr<actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction> >
-    action_server_;
+  std::unique_ptr<actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction> > action_server_;
 };
 
-
-} // namespace trajectory_controllers
-
+}  // namespace trajectory_controllers
 
 #include <pass_through_controllers/pass_through_controllers.hpp>
-

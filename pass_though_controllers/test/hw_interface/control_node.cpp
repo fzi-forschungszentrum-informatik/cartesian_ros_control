@@ -24,7 +24,6 @@
  */
 //-----------------------------------------------------------------------------
 
-
 // Ros
 #include <ros/ros.h>
 
@@ -35,17 +34,16 @@
 #include "hw_interface.h"
 #include "ros/time.h"
 
-
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "hw_interface_example");
   ros::NodeHandle nh;
   examples::HWInterface hw_interface;
   controller_manager::ControllerManager controller_manager(&hw_interface);
-  
-  int control_rate; 
+
+  int control_rate;
   if (!nh.getParam("control_rate", control_rate))
-  { 
+  {
     control_rate = 125;
     ROS_INFO_STREAM("Failed to load 'control_rate' from parameter server. Using default " << control_rate);
   }
@@ -66,7 +64,6 @@ int main(int argc, char** argv)
 
     rate.sleep();
   }
-
 
   return 0;
 }

@@ -15,7 +15,6 @@
 // limitations under the License.
 // -- END LICENSE BLOCK ------------------------------------------------
 
-
 //-----------------------------------------------------------------------------
 /*!\file    pass_through_controllers.cpp
  *
@@ -33,20 +32,18 @@
 
 // Exports
 
-namespace joint_trajectory_controllers {
-
+namespace joint_trajectory_controllers
+{
 using PassThroughController =
-  trajectory_controllers::PassThroughController<hardware_interface::JointTrajectoryInterface>;
+    trajectory_controllers::PassThroughController<hardware_interface::JointTrajectoryInterface>;
 }
 
-namespace cartesian_trajectory_controllers {
-
+namespace cartesian_trajectory_controllers
+{
 using PassThroughController =
-  trajectory_controllers::PassThroughController<hardware_interface::CartesianTrajectoryInterface>;
+    trajectory_controllers::PassThroughController<hardware_interface::CartesianTrajectoryInterface>;
 }
 
-PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController,
-                       controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController, controller_interface::ControllerBase)
 
-PLUGINLIB_EXPORT_CLASS(cartesian_trajectory_controllers::PassThroughController,
-                       controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(cartesian_trajectory_controllers::PassThroughController, controller_interface::ControllerBase)

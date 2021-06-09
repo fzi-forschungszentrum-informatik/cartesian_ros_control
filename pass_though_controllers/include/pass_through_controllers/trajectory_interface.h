@@ -15,7 +15,6 @@
 // limitations under the License.
 // -- END LICENSE BLOCK ------------------------------------------------
 
-
 //-----------------------------------------------------------------------------
 /*!\file    trajectory_interface.h
  *
@@ -24,7 +23,6 @@
  *
  */
 //-----------------------------------------------------------------------------
-
 
 #pragma once
 
@@ -38,8 +36,8 @@
 #include <hardware_interface/hardware_interface.h>
 #include <ros/ros.h>
 
-namespace hardware_interface {
-
+namespace hardware_interface
+{
 /**
  * @brief Hardware-generic done flags for trajectory execution
  *
@@ -74,8 +72,6 @@ using JointTrajectoryFeedback = control_msgs::FollowJointTrajectoryFeedback;
  */
 using CartesianTrajectoryFeedback = cartesian_control_msgs::FollowCartesianTrajectoryFeedback;
 
-
-
 /**
  * @brief Hardware interface for forwarding trajectories
  *
@@ -89,7 +85,7 @@ using CartesianTrajectoryFeedback = cartesian_control_msgs::FollowCartesianTraje
  * The intended usage is as follows:
  * - The RobotHW instantiates this TrajectoryInterface and registers callbacks
  *   for forwarded goals and cancel requests with \a registerGoalCallback() and
- *   \a registerCancelCallback(), respectively. 
+ *   \a registerCancelCallback(), respectively.
  * - On the controller side, the PassThroughController calls the respective \a
  *   setGoal() and \a setCancel() methods to trigger those events for the
  *   RobotHW. The PassThroughController also registers a callback for signals
@@ -107,147 +103,148 @@ using CartesianTrajectoryFeedback = cartesian_control_msgs::FollowCartesianTraje
 template <class TrajectoryType, class FeedbackType>
 class TrajectoryInterface : public hardware_interface::HardwareInterface
 {
-  public:
+public:
+  /**
+   * @brief Register a RobotHW-side callback for new trajectory execution
+   *
+   * Callback for triggering execution start in the RobotHW.
+   * Use this callback mechanism to handle starting of
+   * trajectories on the robot vendor controller.
+   *
+   * @param f The function to be called for starting trajectory execution
+   */
+  void registerGoalCallback(std::function<void(const TrajectoryType&)> f)
+  {
+    goal_callback_ = f;
+  }
 
-    /**
-     * @brief Register a RobotHW-side callback for new trajectory execution
-     *
-     * Callback for triggering execution start in the RobotHW.
-     * Use this callback mechanism to handle starting of
-     * trajectories on the robot vendor controller.
-     *
-     * @param f The function to be called for starting trajectory execution
-     */
-    void registerGoalCallback(std::function<void(const TrajectoryType&)> f)
+  /**
+   * @brief Register a RobotHW-side callback for canceling requests
+   *
+   * @param f The function to be called for canceling trajectory execution
+   */
+  void registerCancelCallback(std::function<void()> f)
+  {
+    cancel_callback_ = f;
+  }
+
+  /**
+   * @brief Register a Controller-side callback for done signals from the hardware
+   *
+   * Use this mechanism in the PassThroughController for handling the
+   * ExecutionState of the forwarded trajectory.
+   *
+   * @param f The function to be called when trajectory execution is done
+   */
+  void registerDoneCallback(std::function<void(const ExecutionState&)> f)
+  {
+    done_callback_ = f;
+  }
+
+  /**
+   * @brief Start the forwarding of new trajectories
+   *
+   * Controller-side method to send incoming trajectories to the RobotHW.
+   *
+   * Note: The JointTrajectory type reorders the joints according to the
+   * given joint resource list.
+   *
+   * @param command The new trajectory
+   * @return True if goal is feasible, false otherwise
+   */
+  bool setGoal(TrajectoryType goal);
+
+  /**
+   * @brief Cancel the current trajectory execution
+   *
+   * Controller-side method to cancel current trajectory execution on the robot.
+   */
+  void setCancel()
+  {
+    if (cancel_callback_ != nullptr)
+      cancel_callback_();
+  };
+
+  /**
+   * @brief RobotHW-side method to mark the execution of a trajectory done.
+   *
+   * Call this function when done with a forwarded trajectory in your
+   * RobotHW or when unexpected interruptions occur. The
+   * PassThroughController will implement a callback to set appropriate
+   * result flags for the trajectory action clients.
+   *
+   * @param state The final state after trajectory execution
+   */
+  void setDone(const ExecutionState& state)
+  {
+    if (done_callback_ != nullptr)
+      done_callback_(state);
+  }
+
+  /**
+   * @brief Set trajectory feedback for PassThroughControllers
+   *
+   * This should be used by the RobotHW to provide continuous feedback on
+   * trajectory execution for the PassThroughControllers.
+   *
+   * @param feedback The feedback content to write to the interface
+   */
+  void setFeedback(FeedbackType feedback)
+  {
+    feedback_ = feedback;
+  }
+
+  /**
+   * @brief Get trajectory feedback
+   *
+   * This can be used by PassThroughControllers to continuously poll
+   * trajectory feedback from the hardware interface.
+   *
+   * @return The most recent feedback on the current trajectory execution
+   */
+  FeedbackType getFeedback() const
+  {
+    return feedback_;
+  }
+
+  /**
+   * @brief Get the joint names (resources) associated with this interface.
+   *
+   * @return Joint names
+   */
+  std::vector<std::string> getJointNames() const
+  {
+    return joint_names_;
+  }
+
+  /**
+   * @brief Associate resources with this interface
+   *
+   * \Note: Call this inside the PassThroughController's constructor to
+   * manage resource conflicts with other ROS controllers.
+   *
+   * @param resources A list of resource names
+   */
+  void setResources(std::vector<std::string> resources)
+  {
+    for (const std::string& joint : resources)
     {
-      goal_callback_ = f;
+      hardware_interface::HardwareInterface::claim(joint);
     }
+    joint_names_ = resources;
+  }
 
-    /**
-     * @brief Register a RobotHW-side callback for canceling requests
-     *
-     * @param f The function to be called for canceling trajectory execution
-     */
-    void registerCancelCallback(std::function<void()> f)
-    {
-      cancel_callback_ = f;
-    }
-
-    /**
-     * @brief Register a Controller-side callback for done signals from the hardware
-     *
-     * Use this mechanism in the PassThroughController for handling the
-     * ExecutionState of the forwarded trajectory.
-     *
-     * @param f The function to be called when trajectory execution is done
-     */
-    void registerDoneCallback(std::function<void(const ExecutionState&)> f)
-    {
-      done_callback_ = f;
-    }
-
-    /**
-     * @brief Start the forwarding of new trajectories
-     *
-     * Controller-side method to send incoming trajectories to the RobotHW.
-     *
-     * Note: The JointTrajectory type reorders the joints according to the
-     * given joint resource list.
-     *
-     * @param command The new trajectory
-     * @return True if goal is feasible, false otherwise
-     */
-    bool setGoal(TrajectoryType goal);
-
-    /**
-     * @brief Cancel the current trajectory execution
-     *
-     * Controller-side method to cancel current trajectory execution on the robot.
-     */
-    void setCancel()
-    {
-      if (cancel_callback_ != nullptr) cancel_callback_();
-    };
-
-    /**
-     * @brief RobotHW-side method to mark the execution of a trajectory done.
-     *
-     * Call this function when done with a forwarded trajectory in your
-     * RobotHW or when unexpected interruptions occur. The
-     * PassThroughController will implement a callback to set appropriate
-     * result flags for the trajectory action clients.
-     *
-     * @param state The final state after trajectory execution
-     */
-    void setDone(const ExecutionState& state)
-    {
-      if (done_callback_ != nullptr) done_callback_(state);
-    }
-
-    /**
-     * @brief Set trajectory feedback for PassThroughControllers
-     *
-     * This should be used by the RobotHW to provide continuous feedback on
-     * trajectory execution for the PassThroughControllers.
-     *
-     * @param feedback The feedback content to write to the interface
-     */
-    void setFeedback(FeedbackType feedback)
-    {
-      feedback_ = feedback;
-    }
-
-    /**
-     * @brief Get trajectory feedback
-     *
-     * This can be used by PassThroughControllers to continuously poll
-     * trajectory feedback from the hardware interface.
-     *
-     * @return The most recent feedback on the current trajectory execution
-     */
-    FeedbackType getFeedback() const
-    {
-      return feedback_;
-    }
-
-    /**
-     * @brief Get the joint names (resources) associated with this interface.
-     *
-     * @return Joint names
-     */
-    std::vector<std::string> getJointNames() const
-    {
-      return joint_names_;
-    }
-
-    /**
-     * @brief Associate resources with this interface
-     *
-     * \Note: Call this inside the PassThroughController's constructor to
-     * manage resource conflicts with other ROS controllers.
-     *
-     * @param resources A list of resource names
-     */
-    void setResources(std::vector<std::string> resources)
-    {
-      for (const std::string& joint : resources)
-      {
-        hardware_interface::HardwareInterface::claim(joint);
-      }
-      joint_names_ = resources;
-    }
-
-  private:
-    std::function<void(const TrajectoryType&)> goal_callback_;
-    std::function<void()> cancel_callback_;
-    std::function<void(const ExecutionState&)> done_callback_;
-    FeedbackType feedback_;
-    std::vector<std::string> joint_names_;
+private:
+  std::function<void(const TrajectoryType&)> goal_callback_;
+  std::function<void()> cancel_callback_;
+  std::function<void(const ExecutionState&)> done_callback_;
+  FeedbackType feedback_;
+  std::vector<std::string> joint_names_;
 };
 
 // Full spezialization for JointTrajectory
-template<> inline
-bool TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::setGoal(JointTrajectory goal)
+template <>
+inline bool TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::setGoal(JointTrajectory goal)
 {
   control_msgs::FollowJointTrajectoryGoal tmp = goal;
 
@@ -284,7 +281,7 @@ bool TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::setGoal(Join
 
   for (auto point : goal.trajectory.points)
   {
-    trajectory_msgs::JointTrajectoryPoint p{point};  // init for equal data size
+    trajectory_msgs::JointTrajectoryPoint p{ point };  // init for equal data size
 
     for (size_t i = 0; i < expected.size(); ++i)
     {
@@ -310,10 +307,9 @@ bool TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::setGoal(Join
   return false;
 }
 
-
 // Full spezialization for CartesianTrajectory
-template<> inline
-bool TrajectoryInterface<CartesianTrajectory, CartesianTrajectoryFeedback>::setGoal(CartesianTrajectory goal)
+template <>
+inline bool TrajectoryInterface<CartesianTrajectory, CartesianTrajectoryFeedback>::setGoal(CartesianTrajectory goal)
 {
   if (goal_callback_ != nullptr)
   {
@@ -322,7 +318,6 @@ bool TrajectoryInterface<CartesianTrajectory, CartesianTrajectoryFeedback>::setG
   }
   return false;
 }
-
 
 /**
  * @brief Hardware interface for commanding (forwarding) joint-based trajectories
@@ -334,4 +329,4 @@ using JointTrajectoryInterface = TrajectoryInterface<JointTrajectory, JointTraje
  */
 using CartesianTrajectoryInterface = TrajectoryInterface<CartesianTrajectory, CartesianTrajectoryFeedback>;
 
-}
+}  // namespace hardware_interface

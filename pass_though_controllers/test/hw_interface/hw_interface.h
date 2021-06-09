@@ -24,7 +24,6 @@
  */
 //-----------------------------------------------------------------------------
 
-
 #pragma once
 
 // ROS
@@ -66,8 +65,8 @@
 #include <array>
 #include <memory>
 
-namespace examples {
-
+namespace examples
+{
 class HWInterface : public hardware_interface::RobotHW
 {
 public:
@@ -162,27 +161,23 @@ private:
   geometry_msgs::Accel cartesian_accel_;
   geometry_msgs::Accel cartesian_jerk_;
 
-
   // Handles
   std::vector<hardware_interface::JointHandle> joint_handles_;
   std::vector<hardware_interface::JointStateHandle> joint_state_handles_;
 
   // Robot connection and communication
-  std::unique_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> >
-    joint_based_communication_;
+  std::unique_ptr<actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>> joint_based_communication_;
   void handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback);
 
   void handleJointDone(const actionlib::SimpleClientGoalState& state,
                        const control_msgs::FollowJointTrajectoryResultConstPtr& result);
 
-  std::unique_ptr<
-    actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction> >
-    cartesian_based_communication_;
-  void handleCartesianFeedback(
-    const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback);
+  std::unique_ptr<actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction>>
+      cartesian_based_communication_;
+  void handleCartesianFeedback(const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback);
 
   void handleCartesianDone(const actionlib::SimpleClientGoalState& state,
                            const cartesian_control_msgs::FollowCartesianTrajectoryResultConstPtr& result);
 };
 
-} // namespace examples
+}  // namespace examples
