@@ -42,15 +42,30 @@
 #pragma once
 
 #include <functional>
-#include <hardware_interface/internal/hardware_resource_manager.h>
 #include <cartesian_control_msgs/FollowCartesianTrajectoryGoal.h>
 #include <cartesian_control_msgs/FollowCartesianTrajectoryResult.h>
 #include <cartesian_control_msgs/FollowCartesianTrajectoryFeedback.h>
 #include <control_msgs/FollowJointTrajectoryGoal.h>
 #include <control_msgs/FollowJointTrajectoryFeedback.h>
 #include <vector>
+#include <hardware_interface/hardware_interface.h>
+#include <ros/ros.h>
 
 namespace hardware_interface {
+
+/**
+ * @brief Hardware-generic done flags for trajectory execution
+ *
+ * When forwarding trajectories to robots, we hand-over control of the actual
+ * execution.  This is a minimal set of generic flags to be reported by the
+ * hardware that PassThroughControllers can process and react upon.
+ */
+enum class ExecutionState
+{
+  SUCCESS = 0,
+  PREEMPTED = -1,
+  ABORTED = -2,
+};
 
 /**
  * @brief TrajectoryType for joint-based trajectories
@@ -75,173 +90,183 @@ using CartesianTrajectoryFeedback = cartesian_control_msgs::FollowCartesianTraje
 
 
 /**
- * @brief A class implementing handles for trajectory hardware interfaces
+ * @brief Hardware interface for forwarding trajectories
  *
- * This is a special type of interface handle for PassThroughControllers. The
- * handles provide read/write access to trajectory command buffers and
- * read/write access to trajectory feedback buffers.
+ * This special hardware interface is primarily used by PassThroughControllers,
+ * which forward full trajectories to robots for interpolation. In contrast to
+ * other hardware interfaces, this interface does not provide the usual handle
+ * mechanism.  Instead, callbacks and respective setter methods allow to
+ * implement control flow during trajectory execution.  Resources need to be
+ * claimed in the forwarding controller's constructor with \a setResources().
  *
- * @tparam TrajectoryType The type of trajectory used.
+ * The intended usage is as follows:
+ * - The RobotHW instantiates this TrajectoryInterface and registers callbacks
+ *   for forwarded goals and cancel requests with \a registerGoalCallback() and
+ *   \a registerCancelCallback(), respectively. 
+ * - On the controller side, the PassThroughController calls the respective \a
+ *   setGoal() and \a setCancel() methods to trigger those events for the
+ *   RobotHW. The PassThroughController also registers a callback for signals
+ *   from the RobotHW when trajectory execution is done with \a
+ *   registerDoneCallback().
+ * - When done with the trajectory execution, the RobotHW calls \a setDone() to
+ *   inform the PassThroughController via its registered callback.
+ * - The RobotHW gives feedback continuously from the execution with \a
+ *   setFeedback(), which is used by the PassThroughController via \a
+ *   getFeedback().
+ *
+ * @tparam TrajectoryType Distinguish between joint-based and Cartesian trajectories
  * @tparam FeedbackType The type of feedback for the trajectory used.
  */
-template<class TrajectoryType, class FeedbackType>
-class TrajectoryHandle
+template <class TrajectoryType, class FeedbackType>
+class TrajectoryInterface : public hardware_interface::HardwareInterface
 {
   public:
-    TrajectoryHandle() = delete;
 
     /**
-     * @brief A trajectory handle for managing read/write functionality for
-     * PassThroughControllers
+     * @brief Register a RobotHW-side callback for new trajectory execution
      *
-     * @param cmd The command buffer for read/write operations
-     * @param feedback The feedback buffer for read/write operations
+     * Callback for triggering execution start in the RobotHW.
+     * Use this callback mechanism to handle starting of
+     * trajectories on the robot vendor controller.
+     *
+     * @param f The function to be called for starting trajectory execution
      */
-    TrajectoryHandle(TrajectoryType* cmd, FeedbackType* feedback)
-      : cmd_(cmd)
-      , feedback_(feedback)
+    void registerGoalCallback(std::function<void(const TrajectoryType&)> f)
     {
-      if (!cmd || !feedback)
-      {
-        throw HardwareInterfaceException(
-          "Cannot create TrajectoryHandle. Make sure to provide both command and feedback buffers during construction");
-      }
-    };
+      goal_callback_ = f;
+    }
 
     /**
-     * @brief A trajectory handle for managing read/write functionality for
-     * PassThroughControllers
+     * @brief Register a RobotHW-side callback for canceling requests
      *
-     * Overload for using callbacks to trigger precise start and cancel events
-     * in user code. In the context of using PassThroughControllers,
-     * implementers of ROS-control HW-interfaces can use this callback
-     * mechanism to handle starting and canceling of trajectories on the robot
-     * vendor controller.
-     *
-     * @param cmd The command buffer for read/write operations
-     * @param feedback The feedback buffer for read/write operations
-     * @param on_new_cmd Callback that is called upon receiving new commands
-     * @param on_cancel Callback that is called when current commands are canceled
+     * @param f The function to be called for canceling trajectory execution
      */
-    TrajectoryHandle(TrajectoryType* cmd,
-                     FeedbackType* feedback,
-                     std::function<void(const TrajectoryType&)> on_new_cmd,
-                     std::function<void()> on_cancel)
-      : cmd_(cmd)
-      , feedback_(feedback)
-      , cmd_callback_(on_new_cmd)
-      , cancel_callback_(on_cancel)
+    void registerCancelCallback(std::function<void()> f)
     {
-      if (!cmd || !feedback)
-      {
-        throw HardwareInterfaceException(
-          "Cannot create TrajectoryHandle. Make sure to provide both command and feedback buffers during construction");
-      }
-    };
-
-    ~TrajectoryHandle(){};
+      cancel_callback_ = f;
+    }
 
     /**
-     * @brief Write the command buffer with the content of an new trajectory
+     * @brief Register a Controller-side callback for done signals from the hardware
      *
-     * This will mainly be used by PassThroughControllers to store their new
-     * incoming trajectories in the robot hardware interface.
+     * Use this mechanism in the PassThroughController for handling the
+     * ExecutionState of the forwarded trajectory.
      *
-     * Note: The JointTrajectory type reorders the joints according to the given
-     * joint resource list.
+     * @param f The function to be called when trajectory execution is done
+     */
+    void registerDoneCallback(std::function<void(const ExecutionState&)> f)
+    {
+      done_callback_ = f;
+    }
+
+    /**
+     * @brief Start the forwarding of new trajectories
+     *
+     * Controller-side method to send incoming trajectories to the RobotHW.
+     *
+     * Note: The JointTrajectory type reorders the joints according to the
+     * given joint resource list.
      *
      * @param command The new trajectory
-     * @return True if command is feasible, false otherwise
+     * @return True if goal is feasible, false otherwise
      */
-    bool setCommand(TrajectoryType command);
+    bool setGoal(TrajectoryType goal);
 
     /**
-     * @brief Read a trajectory from the command buffer
+     * @brief Cancel the current trajectory execution
      *
-     * This can be used to access content from forwarded trajectories in the
-     * robot hardware interface.
-     *
-     * @return The content of the trajectory command buffer
+     * Controller-side method to cancel current trajectory execution on the robot.
      */
-    TrajectoryType getCommand() const {assert(cmd_); return *cmd_;}
-
-    /**
-     * @brief Cancel an active command
-     */
-    void cancelCommand()
+    void setCancel()
     {
-      if (cancel_callback_)
-      {
-        cancel_callback_();
-      }
+      if (cancel_callback_ != nullptr) cancel_callback_();
+    };
+
+    /**
+     * @brief RobotHW-side method to mark the execution of a trajectory done.
+     *
+     * Call this function when done with a forwarded trajectory in your
+     * RobotHW or when unexpected interruptions occur. The
+     * PassThroughController will implement a callback to set appropriate
+     * result flags for the trajectory action clients.
+     *
+     * @param state The final state after trajectory execution
+     */
+    void setDone(const ExecutionState& state)
+    {
+      if (done_callback_ != nullptr) done_callback_(state);
     }
 
     /**
      * @brief Set trajectory feedback for PassThroughControllers
      *
-     * This should be used by the robot HW to provide feedback on trajectory
-     * execution for the PassThroughControllers
+     * This should be used by the RobotHW to provide continuous feedback on
+     * trajectory execution for the PassThroughControllers.
      *
      * @param feedback The feedback content to write to the interface
      */
     void setFeedback(FeedbackType feedback)
     {
-      assert(feedback_);
-      *feedback_ = feedback;
+      feedback_ = feedback;
     }
 
     /**
-     * @brief Access trajectory feedback
+     * @brief Get trajectory feedback
      *
-     * This can be used by PassThroughControllers to get trajectory feedback
-     * from the hardware interface.
+     * This can be used by PassThroughControllers to continuously poll
+     * trajectory feedback from the hardware interface.
      *
-     * @return The most recent feedback on the trajectory execution
+     * @return The most recent feedback on the current trajectory execution
      */
-    FeedbackType getFeedback() const {assert(feedback_); return *feedback_;}
+    FeedbackType getFeedback() const
+    {
+      return feedback_;
+    }
 
     /**
-     * @brief Get the name of this trajectory handle
-     *
-     * By convention, this either returns \a joint_trajectory_handle for joint-based trajectory handles
-     * and \a cartesian_trajectory_handle for Cartesian-based trajectory handles.
-     *
-     * @return The name that is associated with this specific handle
-     */
-    static std::string getName() noexcept;
-
-    /**
-     * @brief Set the order of joint names for trajectory reordering.
-     *
-     * @param joint_names
-     */
-    void setJointNames(const std::vector<std::string>& joint_names) noexcept {joint_names_ = joint_names;}
-
-    /**
-     * @brief Get the joint names associated with this handle
+     * @brief Get the joint names (resources) associated with this interface.
      *
      * @return Joint names
      */
-    std::vector<std::string> getJointNames() const {return joint_names_;}
+    std::vector<std::string> getJointNames() const
+    {
+      return joint_names_;
+    }
+
+    /**
+     * @brief Associate resources with this interface
+     *
+     * \Note: Call this inside the PassThroughController's constructor to
+     * manage resource conflicts with other ROS controllers.
+     *
+     * @param resources A list of resource names
+     */
+    void setResources(std::vector<std::string> resources)
+    {
+      for (const std::string& joint : resources)
+      {
+        hardware_interface::HardwareInterface::claim(joint);
+      }
+      joint_names_ = resources;
+    }
 
   private:
-    TrajectoryType* cmd_;
-    FeedbackType* feedback_;
-    std::function<void(const TrajectoryType&)> cmd_callback_;
-    std::function<void()> cancel_callback_;;
+    std::function<void(const TrajectoryType&)> goal_callback_;
+    std::function<void()> cancel_callback_;
+    std::function<void(const ExecutionState&)> done_callback_;
+    FeedbackType feedback_;
     std::vector<std::string> joint_names_;
 };
 
-
 // Full spezialization for JointTrajectory
 template<> inline
-bool TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(JointTrajectory command)
+bool TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::setGoal(JointTrajectory goal)
 {
-  control_msgs::FollowJointTrajectoryGoal tmp;
+  control_msgs::FollowJointTrajectoryGoal tmp = goal;
 
   // Respect joint order by computing the map between msg indices to expected indices.
   // If msg is {A, C, D, B} and expected is {A, B, C, D}, the associated mapping vector is {0, 2, 3, 1}
-  auto msg = command.trajectory.joint_names;
+  auto msg = goal.trajectory.joint_names;
   auto expected = joint_names_;
   std::vector<size_t> msg_joints(msg.size());
   if (msg.size() != expected.size())
@@ -268,8 +293,9 @@ bool TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(Join
 
   // Reorder the joint names and data fields in all trajectory points
   tmp.trajectory.joint_names = expected;
+  tmp.trajectory.points.clear();
 
-  for (auto point : command.trajectory.points)
+  for (auto point : goal.trajectory.points)
   {
     trajectory_msgs::JointTrajectoryPoint p{point};  // init for equal data size
 
@@ -289,135 +315,27 @@ bool TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::setCommand(Join
     tmp.trajectory.points.push_back(p);
   }
 
-  assert(cmd_);
-  *cmd_ = tmp;
-
-  if (cmd_callback_)
+  if (goal_callback_ != nullptr)
   {
-    cmd_callback_(*cmd_);
+    goal_callback_(tmp);
+    return true;
   }
-  return true;
+  return false;
 }
 
 
 // Full spezialization for CartesianTrajectory
 template<> inline
-bool TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>::setCommand(CartesianTrajectory command)
+bool TrajectoryInterface<CartesianTrajectory, CartesianTrajectoryFeedback>::setGoal(CartesianTrajectory goal)
 {
-  assert(cmd_);
-  *cmd_ = command;
-
-  if (cmd_callback_)
+  if (goal_callback_ != nullptr)
   {
-    cmd_callback_(*cmd_);
+    goal_callback_(goal);
+    return true;
   }
-  return true;
+  return false;
 }
 
-// Full spezializations for name deduction
-template<> inline
-std::string TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>::getName() noexcept
-{
-  return "joint_trajectory_handle";
-};
-
-template<> inline
-std::string TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>::getName() noexcept
-{
-  return "cartesian_trajectory_handle";
-};
-
-using JointTrajectoryHandle = TrajectoryHandle<JointTrajectory, JointTrajectoryFeedback>;
-using CartesianTrajectoryHandle = TrajectoryHandle<CartesianTrajectory, CartesianTrajectoryFeedback>;
-
-
-/**
- * @brief Hardware interface for commanding trajectories
- *
- * This special hardware interface is primarily used by PassThroughControllers,
- * which forward full trajectories to robots for interpolation. In contrast to
- * other hardware interfaces, this interface claims multiple resources and
- * offers write access to full trajectory buffers.
- *
- * @tparam TrajectoryType Distinguish between joint-based and Cartesian trajectories
- * @tparam FeedbackType The type of feedback for the trajectory used.
- */
-template <class TrajectoryType, class FeedbackType>
-class TrajectoryInterface
-  : public hardware_interface::HardwareResourceManager<TrajectoryHandle<TrajectoryType, FeedbackType>,
-                                                       hardware_interface::ClaimResources>
-{
-  public:
-
-    /**
-     * @brief Associate resources with this interface
-     *
-     * Call this right after initialization.
-     * \Note: Proper resource handling depends on calling this
-     * method \a before acquiring handles to this interface via getHandle().
-     *
-     * @param resources A list of resource names
-     */
-    void setResources(std::vector<std::string> resources)
-    {
-      joint_names_ = resources;
-    }
-
-    /**
-     * @brief Claim multiple resources when using a single TrajectoryHandle
-     *
-     * This makes sure that PassThroughControllers claim all associated
-     * resources.
-     *
-     * @param std::string Not used
-     */
-    void claim(std::string /*resource*/) override
-    {
-      for (const std::string& joint : joint_names_)
-      {
-        hardware_interface::HardwareResourceManager<
-          TrajectoryHandle<TrajectoryType, FeedbackType>,
-          hardware_interface::ClaimResources>::claim(joint);
-      }
-    }
-
-    /**
-     * @brief Specialized override for joint trajectory handles
-     *
-     * This passes the resource names associated with this interface to the
-     * returned JointTrajectoryHandle, which can then make use of them for
-     * reordering the incoming joint trajectories.
-     *
-     * In the case of CartesianTrajectoryHandle, this forwards the call
-     * to \a getHandle from HardwareResourceManager.
-     *
-     * @param name Name of trajectory handle
-     *
-     * @return Trajectory handle associated to \e name.
-     */
-    TrajectoryHandle<TrajectoryType, FeedbackType> getHandle(const std::string& name);
-    
-
-  private:
-    std::vector<std::string> joint_names_;
-};
-
-template<> inline
-JointTrajectoryHandle TrajectoryInterface<JointTrajectory, JointTrajectoryFeedback>::getHandle(const std::string& name)
-{
-  JointTrajectoryHandle joint_handle = this->hardware_interface::HardwareResourceManager<
-    JointTrajectoryHandle, hardware_interface::ClaimResources>::getHandle(name);
-
-  joint_handle.setJointNames(joint_names_);
-  return joint_handle;
-};
-
-template<> inline
-CartesianTrajectoryHandle TrajectoryInterface<CartesianTrajectory, CartesianTrajectoryFeedback>::getHandle(const std::string& name)
-{
-  return this->hardware_interface::HardwareResourceManager<
-    CartesianTrajectoryHandle, hardware_interface::ClaimResources>::getHandle(name);
-};
 
 /**
  * @brief Hardware interface for commanding (forwarding) joint-based trajectories

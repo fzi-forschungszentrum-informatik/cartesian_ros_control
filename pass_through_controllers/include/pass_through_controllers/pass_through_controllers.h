@@ -62,6 +62,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <vector>
 #include <memory>
+#include <atomic>
 
 
 
@@ -73,7 +74,6 @@ struct JointBase
   using Tolerance              = std::vector<control_msgs::JointTolerance>;
   using TrajectoryPoint        = trajectory_msgs::JointTrajectoryPoint;
   using TrajectoryFeedback     = hardware_interface::JointTrajectoryFeedback; 
-  using TrajectoryHandle       = hardware_interface::JointTrajectoryHandle;
   using FollowTrajectoryAction = control_msgs::FollowJointTrajectoryAction;
   using FollowTrajectoryResult = control_msgs::FollowJointTrajectoryResult;
   using GoalConstPtr           = control_msgs::FollowJointTrajectoryGoalConstPtr;
@@ -84,7 +84,6 @@ struct CartesianBase
   using Tolerance              = cartesian_control_msgs::CartesianTolerance;
   using TrajectoryPoint        = cartesian_control_msgs::CartesianTrajectoryPoint;
   using TrajectoryFeedback     = hardware_interface::CartesianTrajectoryFeedback;
-  using TrajectoryHandle       = hardware_interface::CartesianTrajectoryHandle;
   using FollowTrajectoryAction = cartesian_control_msgs::FollowCartesianTrajectoryAction;
   using FollowTrajectoryResult = cartesian_control_msgs::FollowCartesianTrajectoryResult;
   using GoalConstPtr           = cartesian_control_msgs::FollowCartesianTrajectoryGoalConstPtr;
@@ -159,8 +158,7 @@ public:
   /**
    * @brief Callback method for new action goals
    *
-   * This method calls the \a on_new_cmd callback from the
-   * hardware_interface::TrajectoryHandle<JointTrajectory>.
+   * This method calls the \a setGoal() method from the TrajectoryInterface.
    * Implementers of the ROS-control HW can choose how the trajectory goal is
    * forwarded to the robot for interpolation.
    *
@@ -183,9 +181,9 @@ public:
    * directly upon a client request or indirectly when receiving a new goal
    * while another is still active.
    *
-   * This method calls the \a on_cancel callback from the hardware_interface::TrajectoryHandle<JointTrajectory>.
-   * Implementers of the ROS-control HW can implement how this notification is
-   * handled by the robot vendor control.
+   * This method calls the \a setCancel() method from the TrajectoryInterface.
+   * The RobotHW should implement how this notification is handled by the robot
+   * vendor control.
    *
    * Also check 
    * <a href="https://answers.ros.org/question/333316/actionlib-preempt-vs-cancel/">this info</a>.
@@ -218,13 +216,11 @@ private:
    *
    * @param error The error to check
    * @param tolerances The tolerances to check against
-   * @param error_msg Additional information when tolerance check fails
    *
    * @return False if any of the errors exceeds its tolerance, else true
    */
   bool withinTolerances(const typename Base::TrajectoryPoint& error,
-                        const typename Base::Tolerance& tolerances,
-                        std::string& error_msg);
+                        const typename Base::Tolerance& tolerances);
 
   /**
    * @brief Check if follow trajectory goals are valid
@@ -236,17 +232,17 @@ private:
   bool isValid(const typename Base::GoalConstPtr& goal);
 
   /**
-   * @brief Call this when the action goal's time is up.
+   * @brief Will get called upon finishing the forwarded trajectory
    */
-  void timesUp();
+  void doneCB(const hardware_interface::ExecutionState& state);
 
-  bool done_;
+  std::atomic<bool> done_;
   ActionDuration action_duration_;
   std::unique_ptr<hardware_interface::SpeedScalingHandle> speed_scaling_;
   std::vector<std::string> joint_names_;
   typename Base::Tolerance path_tolerances_;
   typename Base::Tolerance goal_tolerances_;
-  std::unique_ptr<typename Base::TrajectoryHandle> trajectory_handle_;
+  TrajectoryInterface* trajectory_interface_;  ///* Resource managed by RobotHW
   std::unique_ptr<actionlib::SimpleActionServer<typename Base::FollowTrajectoryAction> >
     action_server_;
 };

@@ -14,6 +14,8 @@
 #pragma once
 
 // ROS
+#include "cartesian_control_msgs/FollowCartesianTrajectoryResult.h"
+#include "control_msgs/FollowJointTrajectoryResult.h"
 #include "ros/publisher.h"
 #include "ros/subscriber.h"
 #include <ros/ros.h>
@@ -113,10 +115,6 @@ private:
   std::vector<double> pos_;
   std::vector<double> vel_;
   std::vector<double> eff_;
-  hardware_interface::JointTrajectory jnt_traj_cmd_;
-  hardware_interface::JointTrajectoryFeedback jnt_traj_feedback_;
-  hardware_interface::CartesianTrajectory cart_traj_cmd_;
-  hardware_interface::CartesianTrajectoryFeedback cart_traj_feedback_;
   double speed_scaling_;
   geometry_msgs::Pose pose_cmd_;
 
@@ -160,11 +158,17 @@ private:
     joint_based_communication_;
   void handleJointFeedback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback);
 
+  void handleJointDone(const actionlib::SimpleClientGoalState& state,
+                       const control_msgs::FollowJointTrajectoryResultConstPtr& result);
+
   std::unique_ptr<
     actionlib::SimpleActionClient<cartesian_control_msgs::FollowCartesianTrajectoryAction> >
     cartesian_based_communication_;
   void handleCartesianFeedback(
     const cartesian_control_msgs::FollowCartesianTrajectoryFeedbackConstPtr& feedback);
+
+  void handleCartesianDone(const actionlib::SimpleClientGoalState& state,
+                           const cartesian_control_msgs::FollowCartesianTrajectoryResultConstPtr& result);
 };
 
 } // namespace examples

@@ -65,26 +65,14 @@ namespace trajectory_controllers {
     }
 
     // Availability checked by MultiInterfaceController
-    auto traj_interface = hw->get<TrajectoryInterface>();
-    if (!traj_interface)
+    trajectory_interface_ = hw->get<TrajectoryInterface>();
+    if (!trajectory_interface_)
     {
       ROS_ERROR_STREAM(controller_nh.getNamespace() << ": No suitable trajectory interface found.");
       return false;
     }
 
-    try
-    {
-      traj_interface->setResources(joint_names_);
-      trajectory_handle_ = std::make_unique<typename Base::TrajectoryHandle>(
-          traj_interface->getHandle(Base::TrajectoryHandle::getName()));
-    }
-    catch (hardware_interface::HardwareInterfaceException& ex)
-    {
-      ROS_ERROR_STREAM(
-          controller_nh.getNamespace() << ": Exception getting trajectory handle from interface: "
-          << ex.what());
-      return false;
-    }
+    trajectory_interface_->setResources(joint_names_);
 
     // Use speed scaling interface if available (optional).
     auto speed_scaling_interface = hw->get<hardware_interface::SpeedScalingInterface>();
@@ -116,6 +104,10 @@ namespace trajectory_controllers {
     action_server_->registerPreemptCallback(
         std::bind(&PassThroughController::preemptCB, this));
 
+    // Register callback for when hardware finishes (prematurely)
+    trajectory_interface_->registerDoneCallback(
+        std::bind(&PassThroughController::doneCB, this, std::placeholders::_1));
+
     action_server_->start();
 
     return true;
@@ -132,11 +124,14 @@ namespace trajectory_controllers {
   {
     if (action_server_->isActive())
     {
-      // Set canceled flag in the action result
-      action_server_->setPreempted();
-
       // Stop trajectory interpolation on the robot
-      trajectory_handle_->cancelCommand();
+      trajectory_interface_->setCancel();
+
+      typename Base::FollowTrajectoryResult result;
+      result.error_string = "Controller stopped.";
+      result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      action_server_->setAborted(result);
+      done_ = true;
     }
 
   }
@@ -150,7 +145,7 @@ namespace trajectory_controllers {
       const double factor = (speed_scaling_) ? *speed_scaling_->getScalingFactor() : 1.0;
       action_duration_.current += period * factor;
 
-      typename Base::TrajectoryFeedback f = trajectory_handle_->getFeedback();
+      typename Base::TrajectoryFeedback f = trajectory_interface_->getFeedback();
       action_server_->publishFeedback(f);
 
       // Check tolerances on each call and set terminal conditions for the
@@ -158,10 +153,16 @@ namespace trajectory_controllers {
       // Also set the done_ flag once that happens.
       monitorExecution(f);
 
-      // Time is up. Check goal tolerances and set terminal state.
+      // Time is up.
       if (action_duration_.current >= action_duration_.target)
       {
-        timesUp();
+        if (!done_)
+        {
+          ROS_WARN_THROTTLE(3,
+              "The trajectory should be finished by now. "
+              "Something might be wrong with the robot. "
+              "You might want to cancel this goal.");
+        }
       }
     }
   }
@@ -190,7 +191,7 @@ namespace trajectory_controllers {
     goal_tolerances_ = goal->goal_tolerance;
     
     // Notify the  vendor robot control.
-    if (!trajectory_handle_->setCommand(*goal))
+    if (!trajectory_interface_->setGoal(*goal))
     {
       ROS_ERROR("Trajectory goal is invalid.");
       typename Base::FollowTrajectoryResult result;
@@ -211,8 +212,8 @@ namespace trajectory_controllers {
     }
 
     // When done, the action server is in one of the three states:
-    // 1) succeeded: managed in timesUp()
-    // 2) aborted: managed in update() or in timesUp()
+    // 1) succeeded: managed in doneCB()
+    // 2) aborted: managed in update() or in doneCB()
     // 3) preempted: managed in preemptCB()
   }
 
@@ -220,37 +221,28 @@ namespace trajectory_controllers {
   template <class TrajectoryInterface>
   void PassThroughController<TrajectoryInterface>::preemptCB()
   {
-    // Notify the vendor robot control.
-    trajectory_handle_->cancelCommand();
-
-    typename Base::FollowTrajectoryResult result;
-    result.error_string = "preempted";
-    action_server_->setPreempted(result);
-
-    done_ = true;
+    if (action_server_->isActive())
+    {
+      // Notify the vendor robot control.
+      trajectory_interface_->setCancel();
+    }
   }
 
   template <class TrajectoryInterface>
   void PassThroughController<TrajectoryInterface>::monitorExecution(
     const typename Base::TrajectoryFeedback& feedback)
   {
-    // Abort if any of the joints exceeds its path tolerance
-    std::string msg = "";
-    if (!withinTolerances(feedback.error, path_tolerances_, msg))
+    // Preempt if any of the joints exceeds its path tolerance
+    if (!withinTolerances(feedback.error, path_tolerances_))
     {
-      typename Base::FollowTrajectoryResult result;
-      result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
-      action_server_->setAborted(result, msg);
-      done_ = true;
-      return;
+      trajectory_interface_->setCancel();
     }
   }
 
   template <>
   bool PassThroughController<hardware_interface::JointTrajectoryInterface>::withinTolerances(
     const TrajectoryPoint& error,
-    const Tolerance& tolerances,
-    std::string& msg)
+    const Tolerance& tolerances)
   {
     // Check each user-given tolerance field individually.
     // Fail if either the tolerance is exceeded or if the robot driver does not
@@ -263,7 +255,7 @@ namespace trajectory_controllers {
         {
           return std::abs(error.positions[i]) <= tolerances[i].position;
         }
-        msg = "Position tolerances specified, but not fully supported by the driver implementation.";
+        ROS_WARN("Position tolerances specified, but not fully supported by the driver implementation.");
         return false;
       }
 
@@ -273,7 +265,7 @@ namespace trajectory_controllers {
         {
           return std::abs(error.velocities[i]) <= tolerances[i].velocity;
         }
-        msg = "Velocity tolerances specified, but not fully supported by the driver implementation.";
+        ROS_WARN("Velocity tolerances specified, but not fully supported by the driver implementation.");
         return false;
       }
 
@@ -283,7 +275,7 @@ namespace trajectory_controllers {
         {
           return std::abs(error.accelerations[i]) <= tolerances[i].acceleration;
         }
-        msg = "Acceleration tolerances  specified, but not fully supported by the driver implementation.";
+        ROS_WARN("Acceleration tolerances  specified, but not fully supported by the driver implementation.");
         return false;
       }
     }
@@ -294,7 +286,7 @@ namespace trajectory_controllers {
 
   template <>
   bool PassThroughController<hardware_interface::CartesianTrajectoryInterface>::withinTolerances(
-    const typename Base::TrajectoryPoint& error, const typename Base::Tolerance& tolerances, std::string& msg)
+    const typename Base::TrajectoryPoint& error, const typename Base::Tolerance& tolerances)
   {
     // Every error is ok for uninitialized tolerances
     Base::Tolerance uninitialized;
@@ -321,7 +313,6 @@ namespace trajectory_controllers {
         not_within_limits(error.acceleration.linear, tolerances.acceleration_error.linear) ||
         not_within_limits(error.acceleration.angular, tolerances.acceleration_error.angular))
     {
-      msg = "Tolerance check failed at least for one dimension";
       return false;
     }
 
@@ -354,26 +345,58 @@ namespace trajectory_controllers {
   }
 
   template <class TrajectoryInterface>
-  void PassThroughController<TrajectoryInterface>::timesUp()
+  void PassThroughController<TrajectoryInterface>::doneCB(const hardware_interface::ExecutionState& state)
   {
-    // Use most recent feedback
-    typename Base::TrajectoryPoint p = trajectory_handle_->getFeedback().error;
     typename Base::FollowTrajectoryResult result;
 
-    // Abort if any of the joints exceeds its goal tolerance
-    std::string msg = "";
-    if (!withinTolerances(p, goal_tolerances_, msg))
+    if (!action_server_->isActive())
     {
-      result.error_code = Base::FollowTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
-      action_server_->setAborted(result, msg);
-
-      trajectory_handle_->cancelCommand();
+      return;
     }
-    else // Succeed
+
+    switch(state)
     {
-      msg = "Success";
-      result.error_code = Base::FollowTrajectoryResult::SUCCESSFUL;
-      action_server_->setSucceeded(result, msg);
+      case hardware_interface::ExecutionState::ABORTED:
+        {
+          result.error_string = "Trajectory aborted by the robot. Something unexpected happened.";
+          result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+          action_server_->setAborted(result);
+        }
+        break;
+
+      case hardware_interface::ExecutionState::PREEMPTED:
+        {
+          result.error_string = "Trajectory preempted. Possible reasons: user request | path tolerances fail.";
+          result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+          action_server_->setPreempted(result);
+        }
+        break;
+
+      case hardware_interface::ExecutionState::SUCCESS:
+        {
+          // Check if we meet the goal tolerances.
+          // The most recent feedback gets us the current state.
+          typename Base::TrajectoryPoint p = trajectory_interface_->getFeedback().error;
+          if (!withinTolerances(p, goal_tolerances_))
+          {
+            result.error_string = "Trajectory finished execution but failed goal tolerances";
+            result.error_code = Base::FollowTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
+            action_server_->setAborted(result);
+          }
+          else
+          {
+            result.error_string = "Trajectory execution successful";
+            result.error_code = Base::FollowTrajectoryResult::SUCCESSFUL;
+            action_server_->setSucceeded(result);
+          }
+        }
+        break;
+
+      default:
+          result.error_string = "Trajectory finished in unknown state.";
+          result.error_code = Base::FollowTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+          action_server_->setAborted(result);
+        break;
     }
 
     done_ = true;
