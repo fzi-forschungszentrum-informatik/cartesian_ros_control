@@ -24,7 +24,7 @@ An example config could look like this:
 ```yaml
 # A controller to forward joint trajectories to the robot
 forward_joint_trajectories:
-    type: "joint_trajectory_controllers/PassThroughController"
+    type: "pass_through_controllers/JointTrajectoryController"
     joints:
     - joint1
     - joint2
@@ -35,7 +35,7 @@ forward_joint_trajectories:
 
 # A controller to forward joint trajectories to the robot
 forward_cartesian_trajectories:
-    type: "cartesian_trajectory_controllers/PassThroughController"
+    type: "pass_through_controllers/CartesianTrajectoryController"
     joints:
     - joint1
     - joint2

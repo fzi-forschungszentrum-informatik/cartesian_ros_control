@@ -88,13 +88,13 @@ struct CartesianBase
  * \code{.yaml}
  * # Your joint-based passthrough controller
  * forward_joint_trajectories:
- *     type: "joint_trajectory_controllers/PassThroughController"
+ *     type: "pass_through_controllers/JointTrajectoryController"
  *     ...
  *
  *
  * # Your Cartesian passthrough controller
  * forward_cartesian_trajectories:
- *     type: "cartesian_trajectory_controllers/PassThroughController"
+ *     type: "pass_through_controllers/CartesianTrajectoryController"
  *     ...
  * \endcode
  *
