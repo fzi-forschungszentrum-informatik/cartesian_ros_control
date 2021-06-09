@@ -39,7 +39,7 @@ using JointTrajectoryController =
 
 using CartesianTrajectoryController =
     trajectory_controllers::PassThroughController<hardware_interface::CartesianTrajectoryInterface>;
-}
+}  // namespace pass_through_controllers
 
 PLUGINLIB_EXPORT_CLASS(pass_through_controllers::JointTrajectoryController, controller_interface::ControllerBase)
 
