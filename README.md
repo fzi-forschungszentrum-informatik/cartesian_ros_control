@@ -125,12 +125,12 @@ void trajectorySignalFromRobotReceived(robot_vendor::TrajectoryResult result)
     }
     case urcl::control::TrajectoryResult::TRAJECTORY_RESULT_CANCELED:
     {
-      final_state = hardware_interface::ExecutionState::SUCCESS;
+      final_state = hardware_interface::ExecutionState::PREEMPTED;
       break;
     }
     case urcl::control::TrajectoryResult::TRAJECTORY_RESULT_FAILUDE:
     {
-      final_state = hardware_interface::ExecutionState::SUCCESS;
+      final_state = hardware_interface::ExecutionState::ABORTED;
       break;
     }
     default:
