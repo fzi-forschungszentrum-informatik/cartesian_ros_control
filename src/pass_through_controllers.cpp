@@ -32,18 +32,15 @@
 
 // Exports
 
-namespace joint_trajectory_controllers
+namespace pass_through_controllers
 {
-using PassThroughController =
+using JointTrajectoryController =
     trajectory_controllers::PassThroughController<hardware_interface::JointTrajectoryInterface>;
-}
 
-namespace cartesian_trajectory_controllers
-{
-using PassThroughController =
+using CartesianTrajectoryController =
     trajectory_controllers::PassThroughController<hardware_interface::CartesianTrajectoryInterface>;
-}
+}  // namespace pass_through_controllers
 
-PLUGINLIB_EXPORT_CLASS(joint_trajectory_controllers::PassThroughController, controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(pass_through_controllers::JointTrajectoryController, controller_interface::ControllerBase)
 
-PLUGINLIB_EXPORT_CLASS(cartesian_trajectory_controllers::PassThroughController, controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(pass_through_controllers::CartesianTrajectoryController, controller_interface::ControllerBase)
