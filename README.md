@@ -46,11 +46,11 @@ forward_cartesian_trajectories:
 ```
 
 ## Examples
-Call `` roslaunch pass_through_controllers demo.launch ``
-to get a first impression and inspect how things work.
-The ``cartesian_trajectory_action_client.py`` and the
-``joint_trajectory_action_client.py`` from the _script_ folder trigger random
-motion.
+The [integration
+tests](https://github.com/UniversalRobots/Universal_Robots_ROS_passthrough_controllers/test) from this package might give a first impression on how to use this controller.
+
+Secondly, the [`ur_robot_driver`](https://github.com/UniversalRobots/Universal_Robots_ROS_Driver/tree/master/ur_robot_driver)
+uses those controllers.
 
 
 ## Adapting your RobotHW
