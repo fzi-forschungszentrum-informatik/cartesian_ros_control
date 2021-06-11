@@ -6,7 +6,7 @@ CI](https://github.com/fzi-forschungszentrum-informatik/cartesian_ros_control/ac
 
 <mark>This repository has been split and restructured into individual packages to
 facilitate upstream merges into ROS mainline repositories.</mark>
-For the meantime, the development has been moved to the following places:
+The development has been moved to the following places:
 - Message definition for Cartesian trajectories: [cartesian_control_msgs](https://github.com/UniversalRobots/Universal_Robots_ROS_cartesian_control_msgs)
 - Interface definitions and controllers: [ros_controllers_cartesian](https://github.com/UniversalRobots/Universal_Robots_ROS_controllers_cartesian)
 - Speed scaling interface: [scaled_controllers](https://github.com/UniversalRobots/Universal_Robots_ROS_scaled_controllers) 
