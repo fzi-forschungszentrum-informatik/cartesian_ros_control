@@ -1,6 +1,20 @@
 [![ROS Industrial
 CI](https://github.com/fzi-forschungszentrum-informatik/cartesian_ros_control/actions/workflows/industrial_ci_action.yml/badge.svg?branch=master&event=push)](https://github.com/fzi-forschungszentrum-informatik/cartesian_ros_control/actions)
 
+---
+## ++ Deprecation Notice ++
+
+<mark>This repository has been split and restructured into individual packages to
+facilitate upstream merges into ROS mainline repositories.</mark>
+The development has been moved to the following places:
+- Message definition for Cartesian trajectories: [cartesian_control_msgs](https://github.com/UniversalRobots/Universal_Robots_ROS_cartesian_control_msgs)
+- Interface definitions and controllers: [ros_controllers_cartesian](https://github.com/UniversalRobots/Universal_Robots_ROS_controllers_cartesian)
+- Speed scaling interface: [scaled_controllers](https://github.com/UniversalRobots/Universal_Robots_ROS_scaled_controllers) 
+- Trajectory forwarding: [pass_through_controllers](https://github.com/UniversalRobots/Universal_Robots_ROS_passthrough_controllers)
+
+Please continue to file bugs and open pull requests there as usual.
+
+---
 # Cartesian ROS Control
 
 This package brings mechanisms for Cartesian control to the ROS-control framework.
