@@ -2,7 +2,7 @@
 CI](https://github.com/fzi-forschungszentrum-informatik/cartesian_ros_control/actions/workflows/industrial_ci_action.yml/badge.svg?branch=master&event=push)](https://github.com/fzi-forschungszentrum-informatik/cartesian_ros_control/actions)
 
 ---
-##### ++ Deprecation Notice ++
+## ++ Deprecation Notice ++
 
 <mark>This repository has been split and restructured into individual packages to
 facilitate upstream merges into ROS mainline repositories.</mark>
